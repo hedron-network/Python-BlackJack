@@ -1,0 +1,29 @@
+QWidget#mainContainer{
+    background-color: rgb(0, 128, 128);
+}
+QWidget#topLeftContainer{
+    background-color: transparent;
+}
+QWidget#topRightContainer{
+    background-color: transparent;
+}
+QWidget#bottomLeftContainer{
+    background-color: transparent;
+}
+QWidget#bottomRightContainer{
+    background-color: transparent;
+}
+QWidget#bottomContainer{
+    background-color: red;
+}
+QWidget#animationOverlayContainer{
+    border: 2px solid black;
+    background: transparent;
+}
+QWidget#cardsContainer{
+    border: 2px solid black;
+    background: transparent;
+}
+QLabel#deck{
+    padding: 10;
+}

@@ -3,6 +3,8 @@ import random
 class Game21:
     def __init__(self):
         # Start immediately with a fresh round
+        self.suits = ["♠", "♥", "♦", "♣"]
+        self.ranks = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"]
         self.new_round()
 
     # ROUND MANAGEMENT
