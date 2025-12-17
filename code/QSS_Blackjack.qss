@@ -1,6 +1,9 @@
 QLabel{
     color: aliceblue;
 }
+QLabel#SettingsLabel{
+    color: #000;
+}
 QLabel#overlayLabel{
     color: #000;
 }
@@ -23,11 +26,9 @@ QWidget#bottomContainer{
     background-color: transparent;
 }
 QWidget#animationOverlayContainer{
-    border: 2px solid black;
     background: transparent;
 }
 QWidget#cardsContainer{
-    border: 2px solid black;
     background: transparent;
 }
 QLabel#deck{

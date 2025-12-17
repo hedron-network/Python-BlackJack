@@ -1,14 +1,60 @@
-from tkinter.tix import Select
-
 from PyQt6.QtCore import QUrl, pyqtProperty, Qt, pyqtSignal
-from PyQt6.QtGui import QPixmap, QPainter
+from PyQt6.QtGui import QPixmap, QPainter, QIcon
 from PyQt6.QtMultimedia import QAudioOutput, QMediaPlayer
-from PyQt6.QtWidgets import QWidget, QLabel
+from PyQt6.QtWidgets import QWidget, QLabel, QVBoxLayout, QSlider, QDialog, QComboBox
+
 
 class QLabel_clickable(QLabel):
     clicked=pyqtSignal()
     def mousePressEvent(self, event):
         self.clicked.emit()
+class Settings(QDialog):
+    def __init__(self,icon,audioPlayer,SoundPlayer,tracks, parent=None):
+        super().__init__(parent)
+        self.setGeometry(parent.width()//2+50, parent.height()//2, 100, 300)
+        self.setWindowTitle("Settings")
+        self.setWindowIcon(QIcon(icon))
+
+        self.MusicLabel=QLabel("Music volume :")
+        self.MusicLabel.setObjectName("SettingsLabel")
+        self.musicSlider = QSlider(Qt.Orientation.Horizontal)
+        self.musicSlider.setObjectName("settingsSlider")
+        self.musicSlider.setRange(0,100)
+        self.musicSlider.setValue(100)
+        self.musicSlider.valueChanged.connect(lambda: self.SliderValuesChanged())
+        self.SoundLabel=QLabel("Sound effect volume :")
+        self.SoundLabel.setObjectName("SettingsLabel")
+        self.soundSlider = QSlider(Qt.Orientation.Horizontal)
+        self.soundSlider.setObjectName("settingsSlider")
+        self.soundSlider.setRange(0, 100)
+        self.soundSlider.setValue(100)
+        self.soundSlider.valueChanged.connect(lambda : self.SliderValuesChanged())
+        self.mainLayout = QVBoxLayout()
+        self.TracksLabel=QLabel("Switch tracks :")
+        self.TracksLabel.setObjectName("SettingsLabel")
+        self.tracksSelecter = QComboBox()
+        self.tracksSelecter.addItems(tracks)
+        self.tracksSelecter.currentIndexChanged.connect(lambda : self.changeTracks())
+        self.mainLayout.addWidget(self.MusicLabel)
+        self.mainLayout.addWidget(self.musicSlider)
+        self.mainLayout.addWidget(self.SoundLabel)
+        self.mainLayout.addWidget(self.soundSlider)
+        self.mainLayout.addWidget(self.TracksLabel)
+        self.mainLayout.addWidget(self.tracksSelecter)
+        self.audioPlayer=audioPlayer
+        self.SoundPlayer=SoundPlayer
+        self.mainLayout.addStretch()
+        self.setLayout(self.mainLayout)
+
+
+    def SliderValuesChanged(self):
+        self.audioPlayer.SetVolume(self.musicSlider.value()/100)
+        self.SoundPlayer.SetVolume(self.soundSlider.value()/100)
+
+    def changeTracks(self):
+        self.audioPlayer.playAt(self.tracksSelecter.currentIndex())
+
+
 class AudioPlayer(QWidget):
     def __init__(self,audioSources,trackNames,parent=None):
         super().__init__(parent)

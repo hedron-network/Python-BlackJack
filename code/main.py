@@ -1,21 +1,24 @@
+import time
+
 from PyQt6.QtGui import QPixmap, QPainter, QIcon
 from PyQt6.QtMultimedia import QMediaPlayer
 from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, \
-    QGridLayout
+    QGridLayout, QDialog, QSlider
 from PyQt6.QtCore import Qt, QEasingCurve, QPropertyAnimation, QRect, pyqtProperty, QTimer
 import sys
 
-from holoviews import Overlay
-
 # this project should use a modular approach - try to keep UI logic and game logic separate
 from game_logic import Game21
-from custom_widgets import AudioPlayer,FlippableCard, QLabel_clickable
+from custom_widgets import AudioPlayer,FlippableCard, QLabel_clickable, Settings
+
+
 
 
 class MainWindow(QMainWindow):
 
     def __init__(self):
         super().__init__()
+        self.muted = False
         self.playerMoney = 1_000
         self.hiddenCard = None
         self.setWindowTitle("Game of 21")
@@ -29,6 +32,9 @@ class MainWindow(QMainWindow):
 
         #region Asset Loading
         self.game = Game21()
+        self.settingsIcon = None
+        self.settingsDialog= None
+        self.soundButtonStates=[]
         self.chips = []
         self.isometricChips = []
         self.chipsValue = [5,10,25,50,100,500]
@@ -117,7 +123,7 @@ class MainWindow(QMainWindow):
         # region MediaInfoBar
         self.audioPlayer.player.mediaStatusChanged.connect(lambda status: self.NextTrack(status))
         self.mediaInfoBarContainer = QWidget(self.topLeftContainer)
-        self.mediaInfoBarContainer.setGeometry(0, 0, 0, 40)  # Start with 0 width
+        self.mediaInfoBarContainer.setGeometry(0, 64, 0, 40)  # Start with 0 width
         self.mediaInfoBar = QLabel(self.mediaInfoBarContainer)
         self.mediaInfoBar.setPixmap(self.InfoBar)
 
@@ -162,6 +168,31 @@ class MainWindow(QMainWindow):
         self.bettingLayout.addStretch()
         # endregion
 
+        #region MuteButton
+        soundButtonLayout = QHBoxLayout()
+        soundButtonLayout.addStretch()
+        self.soundButton = QLabel_clickable()
+        self.soundButton.setObjectName("soundButton")
+        self.soundButton.setPixmap(self.soundButtonStates[0])
+        self.soundButton.clicked.connect(lambda : self.Mute())
+        soundButtonLayout.addWidget(self.soundButton)
+        self.bettingLayout.addLayout(soundButtonLayout)
+        #endregion
+
+        #region Settings Button
+        self.topLeftContainerLayout = QHBoxLayout()
+        self.topLeftContainer.setLayout(self.topLeftContainerLayout)
+        self.SettingsLayout= QVBoxLayout()
+        self.SettingsButton = QLabel_clickable()
+        self.SettingsButton.setObjectName("settingsButton")
+        self.SettingsButton.setPixmap(self.settingsIcon)
+        self.SettingsButton.clicked.connect(lambda : self.OpenSettings())
+        self.SettingsLayout.addWidget(self.SettingsButton)
+        self.SettingsLayout.addStretch()
+        self.topLeftContainerLayout.addLayout(self.SettingsLayout)
+        self.topLeftContainerLayout.addStretch()
+        #endregion
+
         #region Chips
         self.bottomLeftContainerLayout = QVBoxLayout()
         self.bottomLeftContainer.setLayout(self.bottomLeftContainerLayout)
@@ -185,9 +216,6 @@ class MainWindow(QMainWindow):
         self.playerCardsLayout.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignCenter)
         self.playerCardsContainer.setGeometry(self.bottomContainer.contentsRect())
 
-
-
-
         self.dealerCardsContainer = QWidget(self.topContainer)
         self.dealerCardsContainer.setAttribute(
             Qt.WidgetAttribute.WA_TransparentForMouseEvents
@@ -200,18 +228,25 @@ class MainWindow(QMainWindow):
         self.dealerCardsContainer.setGeometry(self.topContainer.contentsRect())
         # endregion
 
-        """
-        self.bottomRightContainerLayout = QVBoxLayout()
-        self.bottomRightContainer.setLayout(self.bottomRightContainerLayout)
-        self.drawButton = QPushButton("Draw")
-        self.bottomRightContainerLayout.addWidget(self.drawButton)
+        #region Totals
+        self.playerTotalContainer = QWidget(self.mainContainer)
+        self.playerTotalContainer.setAttribute(
+            Qt.WidgetAttribute.WA_TransparentForMouseEvents
+        )
+        self.playerTotalContainer.setLayout(QVBoxLayout())
+        self.playerTotalLabel = QLabel("Total :")
 
-        self.drawButton.clicked.connect(lambda : self.StartRound())
-        self.revealButton = QPushButton("Reveal")
-        self.bottomRightContainerLayout.addWidget(self.revealButton)
-        self.revealButton.clicked.connect( lambda : self.ShowDealerCard())
-        self.bottomRightContainerLayout.addWidget(self.ShowCurrentTrackButton)
-        """
+        self.playerTotalContainer.layout().addWidget(self.playerTotalLabel)
+
+        self.dealerTotalContainer = QWidget(self.mainContainer)
+        self.dealerTotalContainer.setAttribute(
+            Qt.WidgetAttribute.WA_TransparentForMouseEvents
+        )
+        self.dealerTotalContainer.setLayout(QVBoxLayout())
+        self.dealerTotalLabel = QLabel("Total :")
+        self.dealerTotalContainer.layout().addWidget(self.dealerTotalLabel)
+        #endregion
+
         # TODO: Dealer Section with cards
         self.dealerCards =0
         # TODO: Player Section with cards
@@ -267,11 +302,16 @@ class MainWindow(QMainWindow):
         self.audioPlayer= AudioPlayer(audioSources,trackNames,self.mainContainer)
         self.InfoBar = QPixmap("./assets/UI elements/bar.png").scaled(200,5)
         soundEffects = ["./assets/sounds/card-draw-sound.mp3","./assets/sounds/flipcard.mp3","./assets/sounds/single_poker_chip.mp3","./assets/sounds/allin.mp3"]
-        trackNames = ["draw","flip","single_chip","allin"]
-        self.soundEffectPlayer = AudioPlayer(soundEffects,trackNames,self.mainContainer)
+        soundNames = ["draw","flip","single_chip","allin"]
+        self.soundEffectPlayer = AudioPlayer(soundEffects,soundNames,self.mainContainer)
 
         self.backgroundPixmap = QPixmap("./assets/UI elements/background.jpg")
-
+        self.soundButtonStates= [
+            QPixmap("./assets/UI elements/speaker.png"),
+            QPixmap("./assets/UI elements/mute.png")
+        ]
+        self.settingsIcon = QPixmap("./assets/UI elements/settings.png")
+        self.settingsDialog = Settings(self.settingsIcon,self.audioPlayer,self.soundEffectPlayer,trackNames,self.mainContainer)
     """fix for self.bottomContainer.contentsRect() returning incorrect values"""
     def showEvent(self, event):
         super().showEvent(event)
@@ -283,6 +323,12 @@ class MainWindow(QMainWindow):
         self.BottomButtonContainer.setGeometry(
             self.bottomContainer.width() // 3, 0,
             self.bottomContainer.width() // 3, self.bottomContainer.height()
+        )
+        self.playerTotalContainer.setGeometry(
+            self.width() // 2- self.playerTotalLabel.width()//4, self.height() // 2 + 100, 200, 100
+        )
+        self.dealerTotalContainer.setGeometry(
+            self.width() // 2 - self.playerTotalLabel.width() // 4, self.height() // 2 - 200, 200, 100
         )
 
 
@@ -311,6 +357,10 @@ class MainWindow(QMainWindow):
                 self.bottomContainer.width()//3,0,
                 self.bottomContainer.width()//3, self.bottomContainer.height()
             )
+        if hasattr(self, 'playerTotalContainer'):
+            self.playerTotalContainer.setGeometry(
+                self.width() // 2 - self.playerTotalLabel.width()//4, self.height() // 2 + 140, 200, 100
+            )
     # BUTTON ACTIONS
 
     def StartRound(self):
@@ -325,7 +375,8 @@ class MainWindow(QMainWindow):
             self.CardDrawAnimation(card, True, True)
         self.update_dealer_cards()
     def CardDrawAnimation(self,cardToDraw, isPlayerDrawing, reveal=True):
-        self.soundEffectPlayer.playAt(0)
+        if not self.muted:
+            self.soundEffectPlayer.playAt(0)
         animatedCard = QLabel(self.animationOverlayContainer)
         animatedCard.setPixmap(self.cardBack)
         animatedCard.setGeometry(self.DrawCardStartGeometry())
@@ -403,7 +454,10 @@ class MainWindow(QMainWindow):
         rankIndex = self.game.ranks.index(rank)
         cardIndex = 13* suitIndex + rankIndex
         return self.cards[cardIndex]
-
+    def setPlayerTotal(self):
+        self.playerTotalLabel.setText("Total : "+ str(self.game.player_total()))
+    def setDealerTotal(self):
+        self.dealerTotalLabel.setText("Total : " + str(self.game.dealer_total()))
     def on_hit(self):
         # Player takes a card
         #card = self.game.player_hit()
@@ -462,7 +516,8 @@ class MainWindow(QMainWindow):
     def ShowDealerCard(self):
         if self.dealerFaceDownCard == "":
             return
-        self.soundEffectPlayer.playAt(1)
+        if not self.muted:
+            self.soundEffectPlayer.playAt(1)
         cardGeometry = self.DrawCardStartGeometry()
         geometry = QRect(
             int(self.width() // 2 - cardGeometry.width() // 2 * 0 + (
@@ -502,17 +557,18 @@ class MainWindow(QMainWindow):
             self.audioPlayer.selected=0
         self.audioPlayer.SelectTrack(self.audioPlayer.selected)
         self.audioPlayer.play()
+        self.ShowCurrentTrack()
 
     def ShowCurrentTrack(self,fold=True):
 
         self.currentTrackLabel.setText("Currently Playing: " + self.audioPlayer.CurrentTrack())
         self.InfoBarAnimation = QPropertyAnimation(self.mediaInfoBarContainer, b"geometry")
         if fold:
-            self.InfoBarAnimation.setStartValue(QRect(0, 0, 0, 40))
-            self.InfoBarAnimation.setEndValue(QRect(0, 0, 200, 40))
+            self.InfoBarAnimation.setStartValue(QRect(0, 40, 0, 40))
+            self.InfoBarAnimation.setEndValue(QRect(0, 40, 200, 40))
         else:
-            self.InfoBarAnimation.setStartValue(QRect(0, 0, 200, 40))
-            self.InfoBarAnimation.setEndValue(QRect(0, 0, 0, 40))
+            self.InfoBarAnimation.setStartValue(QRect(0, 40, 200, 40))
+            self.InfoBarAnimation.setEndValue(QRect(0, 40, 0, 40))
         self.InfoBarAnimation.setDuration(1000)
         self.InfoBarAnimation.setEasingCurve(QEasingCurve.Type.InOutCubic)
         self.InfoBarAnimation.valueChanged.connect(
@@ -520,7 +576,7 @@ class MainWindow(QMainWindow):
         )
         if fold:
             self.InfoBarAnimation.finished.connect(
-                lambda: QTimer.singleShot(2000, lambda: self.ShowCurrentTrack(False))
+                lambda: QTimer.singleShot(3000, lambda: self.ShowCurrentTrack(False))
             )
         self.InfoBarAnimation.start()
     def PlayChip(self, chipIndex):
@@ -547,22 +603,32 @@ class MainWindow(QMainWindow):
         self.activeAnimations.append(animation)
         animation.start()
     def AllIn(self,betAmount):
+        chips =[]
         for i in range (len(self.chipsValue)-1,-1,-1):
             while betAmount > self.chipsValue[i]:
                 betAmount -= self.chipsValue[i]
-                self.PlayChip(i)
+                chips.append(i)
         while (betAmount > 0):
             betAmount -= self.chipsValue[0]
-            self.PlayChip(0)
+            chips.append(0)
+        self.StaggeredChips(chips)
+    def StaggeredChips(self,chips):
+        if len(chips)>0:
+            chip = chips.pop(0)
+            self.PlayChip(chip)
+            QTimer.singleShot(50, lambda :self.StaggeredChips(chips))
+
     def Bet(self, t):
         if t> self.playerMoney:
             return
-        if t==-1:
-            self.soundEffectPlayer.playAt(3)
+        if t==-1 and self.playerMoney>0:
+            if not self.muted:
+                self.soundEffectPlayer.playAt(3)
             betAmount = self.playerMoney
             self.AllIn(betAmount)
         else:
-            self.soundEffectPlayer.playAt(2)
+            if not self.muted and self.playerMoney>=t:
+                self.soundEffectPlayer.playAt(2)
             betAmount = self.chipsValue[t]
             self.PlayChip(t)
         self.playerMoney -= betAmount
@@ -571,6 +637,21 @@ class MainWindow(QMainWindow):
         for chipType in self.playedChips:
             for chip in chipType:
                 chip.deleteLater()
+
+    def Mute(self):
+        if self.muted:
+            self.soundButton.setPixmap(self.soundButtonStates[0])
+            self.audioPlayer.play()
+            self.ShowCurrentTrack()
+        else:
+            self.soundButton.setPixmap(self.soundButtonStates[1])
+            self.audioPlayer.stop()
+        self.muted = not self.muted
+
+    def OpenSettings(self):
+        self.settingsDialog.exec()
+
+
 
 
 # complete
