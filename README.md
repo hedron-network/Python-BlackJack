@@ -23,17 +23,17 @@ The final goal of the application is to provide an intuitive and professional lo
 - [ ] **Win Condition Logic** - Determine winner, handle push (tie), detect bust
 
 ### Phase 2: Required UI Features
-- [ ] **Responsive Window Design** - Layout reflows sensibly when resized
+- [x] **Responsive Window Design** - Layout reflows sensibly when resized
 - [x] **Player Hand Display** - Show cards and current total clearly
 - [x] **Dealer Hand Display** - Show cards with face-down card until reveal, display total
-- [ ] **Control Buttons** - Hit, Stand, and New Round buttons
+- [x] **Control Buttons** - Hit, Stand, and New Round buttons
 - [ ] **Scoreboard** - Display player and dealer hand totals prominently
 - [ ] **Visual Feedback** - Clear win/lose/push indication at round end
 - [x] **Card Images** - Use graphical card images 
 
 ### Phase 3: Design & Accessibility
-- [ ] **External Stylesheet** - Separate QSS file for styling
-- [ ] **Images & Icons** - Integrate card images and UI icons
+- [x] **External Stylesheet** - Separate QSS file for styling
+- [x] **Images & Icons** - Integrate card images and UI icons
 - [ ] **Accessibility Features** - Large fonts, high contrast, clear labeling
 - [ ] **Turn Indicator** - Clear display of whose turn it is
 
@@ -43,11 +43,12 @@ The final goal of the application is to provide an intuitive and professional lo
 - [ ] **Statistics Tracker** - Track wins/losses/pushes across sessions
 - [ ] **Theme Switcher** - Light/Dark mode toggle
 - [ ] **Best of 3 Mode** - Multi-round gameplay with series winner
-- [ ] **Settings Panel** - Adjust font size, contrast, animation speed
+- [x] **Settings Panel** - Adjust font size, contrast, animation speed
 
 ### Phase 5: Animations & Polish
 - [x] **Card Draw Animation** - Smooth card dealing animation
 - [x] **Card Flip Animation** - Reveal dealer's face-down card with flip effect
+- [x] **Chip Animations** - Chips animation for betting feedback
 - [ ] **Dealer Idle Animation** - Optional idle animation for dealer character
 - [ ] **Smooth Transitions** - Polish all state changes with subtle animations
 

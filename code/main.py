@@ -18,6 +18,10 @@ class MainWindow(QMainWindow):
 
     def __init__(self):
         super().__init__()
+        self.canStartNewRound = True
+        self.canActivateButtons = True
+        self.betAmount = 0
+        self.canBet=True
         self.muted = False
         self.playerMoney = 1_000
         self.hiddenCard = None
@@ -44,7 +48,6 @@ class MainWindow(QMainWindow):
         self.audioPlayer = None
         self.InfoBar = None
         self.soundEffectPlayer = None
-        self.backgroundPixmap = None
         self.loadAssets()
         if len(self.cards) == 0 or self.cardBack is None or self.deckAsset is None:
             print("Error Loading Cards Assets")
@@ -56,6 +59,7 @@ class MainWindow(QMainWindow):
         #region Container Setup
 
         self.background = QLabel(self.mainContainer)
+        self.background.setObjectName("background")
         self.activeAnimations = []
         self.dealerFaceDownCard = None
         self.animationOverlayContainer = QWidget(self.mainContainer) # makes an overlay widget
@@ -138,9 +142,38 @@ class MainWindow(QMainWindow):
         self.ShowCurrentTrackButton.clicked.connect(lambda: self.ShowCurrentTrack())
         # endregion
 
+        #region PlayerInformation
+        self.PlayerInformationContainer = QWidget(self.topContainer)
+        self.PlayerInformationContainer.setObjectName("PlayerInformationContainer")
+        mainPlayerInfoLayout = QVBoxLayout()
+        self.PlayerInformationContainer.setLayout(mainPlayerInfoLayout)
+        self.moneyLayer = QHBoxLayout()
+        self.moneyLayer.addStretch()
+        staticMoneyLabel = QLabel("Money :")
+        staticMoneyLabel.setObjectName("staticInfoLabel")
+        self.moneyLayer.addWidget(staticMoneyLabel)
+        self.CurrentMoneyLabel = QLabel("0")
+        self.CurrentMoneyLabel.setObjectName("CurrentMoneyLabel")
+        self.moneyLayer.addWidget(self.CurrentMoneyLabel)
+        self.moneyLayer.addStretch()
+        mainPlayerInfoLayout.addLayout(self.moneyLayer)
+
+        self.betInfoLayer = QHBoxLayout()
+        self.betInfoLayer.addStretch()
+        staticBetLabel = QLabel("Bet:")
+        staticBetLabel.setObjectName("staticInfoLabel")
+        self.betInfoLayer.addWidget(staticBetLabel)
+        self.CurrentBetLabel = QLabel("0")
+        self.CurrentBetLabel.setObjectName("CurrentBetLabel")
+        self.betInfoLayer.addWidget(self.CurrentBetLabel)
+        self.betInfoLayer.addStretch()
+        mainPlayerInfoLayout.addLayout(self.betInfoLayer)
+        mainPlayerInfoLayout.addStretch()
+        #endregion
+
         #region Betting
         self.bottomRightContainerLayout = QHBoxLayout()
-        self.bottomRightContainerLayout.addStretch(2)
+        self.bottomRightContainerLayout.addStretch(4)
         self.bottomRightContainer.setLayout(self.bottomRightContainerLayout)
         self.bettingLayout = QVBoxLayout()
         self.chipsLayout = QGridLayout()
@@ -165,6 +198,9 @@ class MainWindow(QMainWindow):
         self.AllInButton = QPushButton("All In")
         self.AllInButton.clicked.connect(lambda : self.Bet(-1))
         self.bettingLayout.addWidget(self.AllInButton)
+        self.ConfirmBetButton = QPushButton("Confirm Bet")
+        self.ConfirmBetButton.clicked.connect(lambda : self.confirmBet())
+        self.bettingLayout.addWidget(self.ConfirmBetButton)
         self.bettingLayout.addStretch()
         # endregion
 
@@ -247,11 +283,9 @@ class MainWindow(QMainWindow):
         self.dealerTotalContainer.layout().addWidget(self.dealerTotalLabel)
         #endregion
 
-        # TODO: Dealer Section with cards
         self.dealerCards =0
-        # TODO: Player Section with cards
         self.playerCards = 0
-        #  TODO: Buttons for hit, stand, new round
+        #region Buttons
         self.BottomButtonContainer = QWidget(self.bottomContainer)
         self.hitButton = QPushButton("Hit")
         self.setObjectName("hitButton")
@@ -261,9 +295,6 @@ class MainWindow(QMainWindow):
         self.setObjectName("standButton")
         self.standButton.clicked.connect(lambda : self.on_stand())
 
-        self.NewRoundButton = QPushButton("New Round")
-        self.NewRoundButton.setObjectName("NewRoundButton")
-        self.NewRoundButton.clicked.connect(lambda :self.StartRound())
         bottomLayout = QVBoxLayout()
         self.BottomButtonContainer.setLayout(bottomLayout)
         bottomLayout.addStretch()
@@ -272,20 +303,19 @@ class MainWindow(QMainWindow):
         self.buttonLayout.addStretch()
         self.buttonLayout.addWidget(self.hitButton)
         self.buttonLayout.addWidget(self.standButton)
-        self.buttonLayout.addWidget(self.NewRoundButton)
         self.buttonLayout.addStretch()
-        #  TODO: Feedback
+        #endregion
 
-        #  TODO: Add widgets to layout
-
-        #  TODO: Trigger a new layout with a new round
-        self.background.setPixmap(self.backgroundPixmap)
         self.background.lower()
         self.animationOverlayContainer.raise_()
         self.audioPlayer.play()
         self.ShowCurrentTrack()
-        self.StartRound()
-
+        self.on_new_round()
+#region Initial Setup
+    """
+    Loads the predefined Assets
+    returns void
+    """
     def loadAssets(self):
         for i in range(0,len(self.chipsValue)):
             self.chips.append(QPixmap("./assets/chips/Flat/sprite_" + str(i) + ".png").scaled(64,64))
@@ -301,18 +331,23 @@ class MainWindow(QMainWindow):
         trackNames = ["All That Jazz"]
         self.audioPlayer= AudioPlayer(audioSources,trackNames,self.mainContainer)
         self.InfoBar = QPixmap("./assets/UI elements/bar.png").scaled(200,5)
-        soundEffects = ["./assets/sounds/card-draw-sound.mp3","./assets/sounds/flipcard.mp3","./assets/sounds/single_poker_chip.mp3","./assets/sounds/allin.mp3"]
-        soundNames = ["draw","flip","single_chip","allin"]
+        soundEffects = ["./assets/sounds/card-draw-sound.mp3","./assets/sounds/flipcard.mp3","./assets/sounds/single_poker_chip.mp3","./assets/sounds/allin.mp3","./assets/sounds/error-bet.mp3"]
+        soundNames = ["draw","flip","single_chip","allin","error-bet"]
         self.soundEffectPlayer = AudioPlayer(soundEffects,soundNames,self.mainContainer)
-
-        self.backgroundPixmap = QPixmap("./assets/UI elements/background.jpg")
         self.soundButtonStates= [
             QPixmap("./assets/UI elements/speaker.png"),
             QPixmap("./assets/UI elements/mute.png")
         ]
         self.settingsIcon = QPixmap("./assets/UI elements/settings.png")
         self.settingsDialog = Settings(self.settingsIcon,self.audioPlayer,self.soundEffectPlayer,trackNames,self.mainContainer)
-    """fix for self.bottomContainer.contentsRect() returning incorrect values"""
+
+
+    """
+    fix for contentsRect() returning incorrect values
+    is triggered after the UI is fully loaded
+    """
+
+
     def showEvent(self, event):
         super().showEvent(event)
         self.playerCardsContainer.setGeometry(
@@ -331,8 +366,13 @@ class MainWindow(QMainWindow):
             self.width() // 2 - self.playerTotalLabel.width() // 4, self.height() // 2 - 200, 200, 100
         )
 
+        self.PlayerInformationContainer.setGeometry(self.width()//4,0,self.topContainer.width()//2,self.topContainer.height()//2)
 
-    """Resize overlays"""
+
+    """
+    Triggered when resizing occurs
+    Resize all of the outside layouts containers
+    """
     def resizeEvent(self, event):
         super().resizeEvent(event)
         if hasattr(self, "background"):
@@ -359,21 +399,52 @@ class MainWindow(QMainWindow):
             )
         if hasattr(self, 'playerTotalContainer'):
             self.playerTotalContainer.setGeometry(
-                self.width() // 2 - self.playerTotalLabel.width()//4, self.height() // 2 + 140, 200, 100
+                self.width() // 2 - self.playerTotalLabel.width()//4, self.height() // 2 + 100, 200, 100
             )
-    # BUTTON ACTIONS
-
-    def StartRound(self):
-        self.game.new_round()
-        self.ClearChips()
+        if hasattr(self, 'dealerTotalContainer'):
+            self.dealerTotalContainer.setGeometry(
+                self.width() // 2 - self.playerTotalLabel.width() // 4, self.height() // 2 - 200, 200, 100
+            )
+        if hasattr(self, 'PlayerInformationContainer'):
+            self.PlayerInformationContainer.setGeometry(self.width() // 4, 0, self.topContainer.width() // 2,
+                                                        self.topContainer.height() // 2)
+#endregion
+#region Round Management
+    def new_round_setup(self):
+        self.canActivateButtons = False
+        self.DeleteChips()
+        self.betAmount = 0
+        self.CurrentMoneyLabel.setText(str(self.playerMoney))
+        self.CurrentBetLabel.setText(str(self.betAmount))
+        self.playerTotalLabel.setText("Total : "+ str(0))
+        self.dealerTotalLabel.setText("Total : " + str(0))
         self.playerCards = 0
-        self.dealerCards=0
+        self.dealerCards = 0
         self.clear_layout(self.playerCardsLayout)
-        self.game.player_hand = ["A♠", "A♥"]
-        self.game.dealer_hand = ["A♦", "A♣"]
+        self.clear_layout(self.dealerCardsLayout)
+
+        self.canBet = True
+
+        self.canActivateButtons = True
+        self.canStartNewRound = True
+
+    def DrawInitialCards(self):
         for card in self.game.player_hand:
             self.CardDrawAnimation(card, True, True)
         self.update_dealer_cards()
+        QTimer.singleShot(1500, lambda: self.FinishCardDraw())
+    def FinishCardDraw(self):
+        self.setPlayerTotal()
+        self.canActivateButtons = True
+
+    #endregion
+#region Animation Handlers
+    def MoneyAnimation(self,end,duration):
+        if self.playerMoney<end:
+            self.playerMoney+=1
+            self.CurrentMoneyLabel.setText(str(self.playerMoney))
+            QTimer.singleShot(duration, lambda: self.MoneyAnimation(end,duration))
+
     def CardDrawAnimation(self,cardToDraw, isPlayerDrawing, reveal=True):
         if not self.muted:
             self.soundEffectPlayer.playAt(0)
@@ -430,136 +501,31 @@ class MainWindow(QMainWindow):
         self.add_card(layout, card)
         TempCard.deleteLater()
 
-    def DrawCardStartGeometry(self):
-        return QRect(self.width()-(88+10),0+10,88,124)
-    def ResetDeck(self,animation,IsPlayerDrawing,card, endGeometry,animatedCard, reveal):
-        animation.deleteLater()
-        self.activeAnimations.remove(animation)
-        animatedCard.deleteLater()
-        if IsPlayerDrawing:
-            layout = self.playerCardsLayout
+    # MAX CHIP STACK = 17
+    def PlayChip(self, chipIndex):
+        Newchip = QLabel(self.chipsContainer)
+        Newchip.setGeometry(32 * chipIndex, 0, 64, 64)
+        Newchip.setPixmap(self.chips[chipIndex])
+        Newchip.show()
+        offset = 10 * len(self.playedChips[chipIndex])
+        self.playedChips[chipIndex].append(Newchip)
+        animation = QPropertyAnimation(Newchip, b"geometry")
+        animation.setDuration(500)
+        if chipIndex % 2 == 0:
+            targetHeight = self.chipsContainer.height() // 2 - offset
         else:
-            layout = self.dealerCardsLayout
-        if reveal:
-            self.CardRevealAnimation(layout, card,endGeometry )
-        else:
-            self.add_card(layout,card)
-
-    def CardToPixmap(self, card):
-        if card =="??":
-            return self.cardBack
-        suit = card[-1]
-        rank = card[:-1]
-        suitIndex = self.game.suits.index(suit)
-        rankIndex = self.game.ranks.index(rank)
-        cardIndex = 13* suitIndex + rankIndex
-        return self.cards[cardIndex]
-    def setPlayerTotal(self):
-        self.playerTotalLabel.setText("Total : "+ str(self.game.player_total()))
-    def setDealerTotal(self):
-        self.dealerTotalLabel.setText("Total : " + str(self.game.dealer_total()))
-    def on_hit(self):
-        # Player takes a card
-        #card = self.game.player_hit()
-        card = "10♠"
-        self.CardDrawAnimation(card, True)
-
-        """if self.game.player_total() > 21:
-          # TODO: what should happen if a player goes over 21? Remove pass when complete
-          pass"""
-
-    def on_stand(self):
-        #self.game.player_stand()
-        self.ShowDealerCard()
-
-
-    def on_new_round(self):
-        self.game.new_round()
-        self.new_round_setup()
-
-    # HELPER METHODS
-
-    def clear_layout(self, layout):
-        # Remove all widgets from a layout
-        while layout.count():
-            item = layout.takeAt(0)
-            widget = item.widget()
-            if widget:
-                widget.deleteLater()
-
-    def add_card(self,layout, card):
-        NewCardLabel = QLabel(self.animationOverlayContainer)
-        NewCardLabel.setPixmap(self.CardToPixmap(card))
-        NewCardLabel.setFixedSize(88,124)
-        if card == "??":
-            self.hiddenCard = NewCardLabel
-        layout.addWidget(NewCardLabel)
-        NewCardLabel.show()
-
-    def update_dealer_cards(self, full=False):
-        self.clear_layout(self.dealerCardsLayout)
-        self.dealerCards = 0
-        self.dealerFaceDownCard = None
-
-        for i, card in enumerate(self.game.dealer_hand):
-            if i == 1 and not full:
-                self.dealerFaceDownCard = card
-                self.CardDrawAnimation("??", False, False)
-            else:
-                self.CardDrawAnimation(card, False, True)
-
-        # TODO: update relevant labels in response to dealer actions. Remove pass when complete
-        if full:
-            pass
-        else:
-            pass
-    def ShowDealerCard(self):
-        if self.dealerFaceDownCard == "":
-            return
-        if not self.muted:
-            self.soundEffectPlayer.playAt(1)
-        cardGeometry = self.DrawCardStartGeometry()
-        geometry = QRect(
-            int(self.width() // 2 - cardGeometry.width() // 2 * 0 + (
-                    cardGeometry.width() + 3) * 0),
-            int(self.dealerCardsContainer.geometry().y() + self.dealerCardsContainer.height() - (124 + 5)),
-            cardGeometry.width(),
-            cardGeometry.height())
-        self.CardRevealAnimation(self.dealerCardsLayout, self.dealerFaceDownCard,geometry)
-        self.hiddenCard.deleteLater()
-        self.dealerFaceDownCard = ""
-
-
-    def new_round_setup(self):
-        for chipType in self.playedChips:
-            for chip in chipType:
-                chip.deleteLater()
-        # TODO: Prepare a fresh visual layout
-
-        # TODO: update relevant labels (reset dealer and player totals)
-
-        # TODO: display new cards for dealers and players
-
-        # TODO: enable buttons for Stand and Hit - Remove pass when complete
-        pass
-
-
-    def end_round(self):
-        # TODO: Disable button actions after the round ends. Remove pass when complete
-        pass
-
-    def NextTrack(self,status):
-        if status != QMediaPlayer.MediaStatus.EndOfMedia:
-            return
-        if self.audioPlayer.selected<self.audioPlayer.sounds:
-            self.audioPlayer.selected+=1
-        else:
-            self.audioPlayer.selected=0
-        self.audioPlayer.SelectTrack(self.audioPlayer.selected)
-        self.audioPlayer.play()
-        self.ShowCurrentTrack()
-
-    def ShowCurrentTrack(self,fold=True):
+            targetHeight = self.chipsContainer.height() // 2 + 32 - offset
+        for i in range(0, len(self.playedChips)):
+            if i % 2 != 0:
+                for chip in self.playedChips[i]:
+                    chip.raise_()
+        animation.setStartValue(QRect(32 * chipIndex, 0, 64, 64))
+        animation.setEndValue(QRect(32 * chipIndex, targetHeight, 64, 64))
+        animation.setEasingCurve(QEasingCurve.Type.InOutCubic)
+        animation.finished.connect(lambda: animation.deleteLater())
+        self.activeAnimations.append(animation)
+        animation.start()
+    def ShowCurrentTrack(self, fold=True):
 
         self.currentTrackLabel.setText("Currently Playing: " + self.audioPlayer.CurrentTrack())
         self.InfoBarAnimation = QPropertyAnimation(self.mediaInfoBarContainer, b"geometry")
@@ -579,36 +545,155 @@ class MainWindow(QMainWindow):
                 lambda: QTimer.singleShot(3000, lambda: self.ShowCurrentTrack(False))
             )
         self.InfoBarAnimation.start()
-    def PlayChip(self, chipIndex):
-        Newchip = QLabel(self.chipsContainer)
-        Newchip.setGeometry(32*chipIndex, 0,64,64)
-        Newchip.setPixmap(self.chips[chipIndex])
-        Newchip.show()
-        offset = 10*len(self.playedChips[chipIndex])
-        self.playedChips[chipIndex].append(Newchip)
-        animation = QPropertyAnimation(Newchip, b"geometry")
-        animation.setDuration(500)
-        if chipIndex %2== 0:
-            targetHeight= self.chipsContainer.height()//2-offset
+
+    def ResetDeck(self,animation,IsPlayerDrawing,card, endGeometry,animatedCard, reveal):
+        animation.deleteLater()
+        self.activeAnimations.remove(animation)
+        animatedCard.deleteLater()
+        if IsPlayerDrawing:
+            layout = self.playerCardsLayout
         else:
-            targetHeight= self.chipsContainer.height()//2+32-offset
-        for i in range(0,len(self.playedChips)):
-            if i %2 !=0:
-                for chip in self.playedChips[i]:
-                    chip.raise_()
-        animation.setStartValue(QRect(32*chipIndex, 0, 64, 64))
-        animation.setEndValue(QRect(32 * chipIndex, targetHeight,64,64))
-        animation.setEasingCurve(QEasingCurve.Type.InOutCubic)
-        animation.finished.connect(lambda : animation.deleteLater())
-        self.activeAnimations.append(animation)
-        animation.start()
+            layout = self.dealerCardsLayout
+        if reveal:
+            self.CardRevealAnimation(layout, card,endGeometry )
+        else:
+            self.add_card(layout,card)
+    def DrawCardStartGeometry(self):
+        return QRect(self.width()-(88+10),0+10,88,124)
+    def CardToPixmap(self, card):
+        if card =="??":
+            return self.cardBack
+        suit = card[-1]
+        rank = card[:-1]
+        suitIndex = self.game.suits.index(suit)
+        rankIndex = self.game.ranks.index(rank)
+        cardIndex = 13* suitIndex + rankIndex
+        return self.cards[cardIndex]
+#endregion
+
+#region GameLogic Interface
+    def on_hit(self):
+        if self.canBet or not self.canActivateButtons:
+            self.soundEffectPlayer.stop()
+            self.soundEffectPlayer.playAt(4)
+            return
+        # Player takes a card
+        card = self.game.draw_card()
+        self.game.player_hand.append(card)
+        score = self.game.player_total()
+        print("Score: " + str(score))
+        self.playerTotalLabel.setText("Total : "+ str(score))
+        self.CardDrawAnimation(card, True)
+
+        if self.game.player_total() > 21:
+            QTimer.singleShot(3000,lambda :self.end_round())
+
+
+    def on_stand(self):
+        if self.canBet or not self.canActivateButtons:
+            self.soundEffectPlayer.stop()
+            self.soundEffectPlayer.playAt(4)
+            return
+        self.canActivateButtons= False
+        self.ShowDealerCard()
+        self.dealerTotalLabel.setText("Total : " + str(self.game.dealer_total()))
+        self.DealerTurn()
+
+
+    def on_new_round(self):
+        if not self.canStartNewRound:
+            return
+        self.canStartNewRound = False
+        self.game.new_round()
+        self.new_round_setup()
+    def update_dealer_cards(self, full=False):
+        self.dealerCards = 0
+        self.dealerFaceDownCard = None
+
+        for i, card in enumerate(self.game.dealer_hand):
+            if i == 1 and not full:
+                self.dealerFaceDownCard = card
+                self.CardDrawAnimation("??", False, False)
+            else:
+                self.CardDrawAnimation(card, False, True)
+                self.dealerTotalLabel.setText("Total : "+str(self.game.card_value(card)))
+#endregion
+
+    #region Helper
+    def setPlayerTotal(self):
+        self.playerTotalLabel.setText("Total : "+ str(self.game.player_total()))
+    def setDealerTotal(self):
+        self.dealerTotalLabel.setText("Total : " + str(self.game.dealer_total()))
+    def clear_layout(self, layout):
+        # Remove all widgets from a layout
+        while layout.count():
+            item = layout.takeAt(0)
+            widget = item.widget()
+            if widget:
+                widget.deleteLater()
+
+    def add_card(self,layout, card):
+        NewCardLabel = QLabel(self.animationOverlayContainer)
+        NewCardLabel.setPixmap(self.CardToPixmap(card))
+        NewCardLabel.setFixedSize(88,124)
+        if card == "??":
+            self.hiddenCard = NewCardLabel
+        layout.addWidget(NewCardLabel)
+        NewCardLabel.show()
+
+    def ShowDealerCard(self):
+        if self.dealerFaceDownCard == "":
+            return
+        if not self.muted:
+            self.soundEffectPlayer.playAt(1)
+        cardGeometry = self.DrawCardStartGeometry()
+        geometry = QRect(
+            int(self.width() // 2 - cardGeometry.width() // 2 * 0 + (
+                    cardGeometry.width() + 3) * 0),
+            int(self.dealerCardsContainer.geometry().y() + self.dealerCardsContainer.height() - (124 + 5)),
+            cardGeometry.width(),
+            cardGeometry.height())
+        self.CardRevealAnimation(self.dealerCardsLayout, self.dealerFaceDownCard,geometry)
+        self.hiddenCard.deleteLater()
+        self.dealerFaceDownCard = ""
+    def DeleteChips(self):
+        for chipType in self.playedChips:
+            for chip in chipType:
+                chip.deleteLater()
+        for i in range(0, len(self.playedChips)):
+            self.playedChips[i] = []
+
+    def end_round(self):
+        res = self.game.decide_winner()
+        print(res)
+        money = self.playerMoney+self.game.resolve_bet(res)
+        delta = money - self.playerMoney
+        if delta>0:
+            animtime = 1000//delta
+            self.MoneyAnimation(money,animtime)
+
+        self.on_new_round()
+
+    def NextTrack(self,status):
+        if status != QMediaPlayer.MediaStatus.EndOfMedia:
+            return
+        if self.audioPlayer.selected<self.audioPlayer.sounds:
+            self.audioPlayer.selected+=1
+        else:
+            self.audioPlayer.selected=0
+        self.audioPlayer.SelectTrack(self.audioPlayer.selected)
+        self.audioPlayer.play()
+        self.ShowCurrentTrack()
+
+
+
     def AllIn(self,betAmount):
         chips =[]
         for i in range (len(self.chipsValue)-1,-1,-1):
             while betAmount > self.chipsValue[i]:
                 betAmount -= self.chipsValue[i]
                 chips.append(i)
-        while (betAmount > 0):
+        while betAmount > 0:
             betAmount -= self.chipsValue[0]
             chips.append(0)
         self.StaggeredChips(chips)
@@ -619,24 +704,30 @@ class MainWindow(QMainWindow):
             QTimer.singleShot(50, lambda :self.StaggeredChips(chips))
 
     def Bet(self, t):
-        if t> self.playerMoney:
+        if t> self.playerMoney or self.playerMoney ==0 or not self.canBet:
+            self.soundEffectPlayer.stop()
+            self.soundEffectPlayer.playAt(4)
             return
         if t==-1 and self.playerMoney>0:
             if not self.muted:
+                self.soundEffectPlayer.stop()
                 self.soundEffectPlayer.playAt(3)
             betAmount = self.playerMoney
             self.AllIn(betAmount)
         else:
+            if len(self.playedChips[t])>=15 or self.chipsValue[t]>self.playerMoney:
+                self.soundEffectPlayer.stop()
+                self.soundEffectPlayer.playAt(4)
+                return
             if not self.muted and self.playerMoney>=t:
+                self.soundEffectPlayer.stop()
                 self.soundEffectPlayer.playAt(2)
             betAmount = self.chipsValue[t]
             self.PlayChip(t)
         self.playerMoney -= betAmount
-
-    def ClearChips(self):
-        for chipType in self.playedChips:
-            for chip in chipType:
-                chip.deleteLater()
+        self.betAmount+= betAmount
+        self.CurrentMoneyLabel.setText(str(self.playerMoney))
+        self.CurrentBetLabel.setText(str(self.betAmount))
 
     def Mute(self):
         if self.muted:
@@ -651,7 +742,25 @@ class MainWindow(QMainWindow):
     def OpenSettings(self):
         self.settingsDialog.exec()
 
+    def DealerTurn(self):
+        DoesDealerDraw = self.game.dealer_turn()
+        self.setDealerTotal()
+        if DoesDealerDraw:
+            card = self.game.dealer_draw()
+            self.CardDrawAnimation(card,False)
+            QTimer.singleShot(1000, lambda : self.DealerTurn())
+        else:
+            QTimer.singleShot(3000, lambda : self.end_round())# time for animations to finish
 
+    #endregion
+    def confirmBet(self):
+        if self.canBet and self.canActivateButtons:
+            self.game.Bet(self.betAmount)
+            self.canBet=False
+            self.DrawInitialCards()
+        else:
+            self.soundEffectPlayer.stop()
+            self.soundEffectPlayer.playAt(4)
 
 
 # complete
