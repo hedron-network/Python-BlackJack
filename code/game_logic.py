@@ -93,7 +93,8 @@ class Game21:
         if d_score > 21: return "DEALER_BUST"
         if p_score > d_score: return "WIN"
         elif p_score < d_score: return "LOSS"
-        else: return "PUSH"
+        else:
+            return "PUSH"
 
 
     def Bet(self, amount):
@@ -107,6 +108,6 @@ class Game21:
             "BUST": 0, "LOSS": 0, "PUSH": 1,
             "WIN": 2, "DEALER_BUST": 2, "BLACKJACK": 2.5
         }
-        payout = int(self.current_bet * multipliers.get(result_key, 0))
+        payout = int(self.current_bet * multipliers[result_key])
         self.current_bet = 0
         return payout

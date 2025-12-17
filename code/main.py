@@ -198,6 +198,9 @@ class MainWindow(QMainWindow):
         self.AllInButton = QPushButton("All In")
         self.AllInButton.clicked.connect(lambda : self.Bet(-1))
         self.bettingLayout.addWidget(self.AllInButton)
+        self.ConfirmBetButton = QPushButton("Confirm Bet")
+        self.ConfirmBetButton.clicked.connect(lambda : self.confirmBet())
+        self.bettingLayout.addWidget(self.ConfirmBetButton)
         self.bettingLayout.addStretch()
         # endregion
 
@@ -292,9 +295,6 @@ class MainWindow(QMainWindow):
         self.setObjectName("standButton")
         self.standButton.clicked.connect(lambda : self.on_stand())
 
-        self.NewRoundButton = QPushButton("New Round")
-        self.NewRoundButton.setObjectName("NewRoundButton")
-        self.NewRoundButton.clicked.connect(lambda :self.end_round())
         bottomLayout = QVBoxLayout()
         self.BottomButtonContainer.setLayout(bottomLayout)
         bottomLayout.addStretch()
@@ -303,7 +303,6 @@ class MainWindow(QMainWindow):
         self.buttonLayout.addStretch()
         self.buttonLayout.addWidget(self.hitButton)
         self.buttonLayout.addWidget(self.standButton)
-        self.buttonLayout.addWidget(self.NewRoundButton)
         self.buttonLayout.addStretch()
         #endregion
 
@@ -413,7 +412,6 @@ class MainWindow(QMainWindow):
 #region Round Management
     def new_round_setup(self):
         self.canActivateButtons = False
-        self.playerMoney = 1000
         self.DeleteChips()
         self.betAmount = 0
         self.CurrentMoneyLabel.setText(str(self.playerMoney))
@@ -423,19 +421,30 @@ class MainWindow(QMainWindow):
         self.playerCards = 0
         self.dealerCards = 0
         self.clear_layout(self.playerCardsLayout)
+        self.clear_layout(self.dealerCardsLayout)
+
+        self.canBet = True
+
+        self.canActivateButtons = True
+        self.canStartNewRound = True
+
+    def DrawInitialCards(self):
         for card in self.game.player_hand:
             self.CardDrawAnimation(card, True, True)
         self.update_dealer_cards()
-        self.canBet = True
-        QTimer.singleShot(1500, lambda: self.finishRoundSetup())
-
-    def finishRoundSetup(self):
-        self.canActivateButtons = True
-        self.canStartNewRound = True
+        QTimer.singleShot(1500, lambda: self.FinishCardDraw())
+    def FinishCardDraw(self):
         self.setPlayerTotal()
+        self.canActivateButtons = True
 
-#endregion
+    #endregion
 #region Animation Handlers
+    def MoneyAnimation(self,end,duration):
+        if self.playerMoney<end:
+            self.playerMoney+=1
+            self.CurrentMoneyLabel.setText(str(self.playerMoney))
+            QTimer.singleShot(duration, lambda: self.MoneyAnimation(end,duration))
+
     def CardDrawAnimation(self,cardToDraw, isPlayerDrawing, reveal=True):
         if not self.muted:
             self.soundEffectPlayer.playAt(0)
@@ -564,29 +573,31 @@ class MainWindow(QMainWindow):
 
 #region GameLogic Interface
     def on_hit(self):
-        if not self.canActivateButtons:
+        if self.canBet or not self.canActivateButtons:
+            self.soundEffectPlayer.stop()
+            self.soundEffectPlayer.playAt(4)
             return
-        self.canBet=False
-        self.game.Bet(self.betAmount)
         # Player takes a card
         card = self.game.draw_card()
         self.game.player_hand.append(card)
         score = self.game.player_total()
+        print("Score: " + str(score))
         self.playerTotalLabel.setText("Total : "+ str(score))
         self.CardDrawAnimation(card, True)
 
         if self.game.player_total() > 21:
-            self.lose()
+            QTimer.singleShot(3000,lambda :self.end_round())
 
 
     def on_stand(self):
-        if not self.canActivateButtons:
+        if self.canBet or not self.canActivateButtons:
+            self.soundEffectPlayer.stop()
+            self.soundEffectPlayer.playAt(4)
             return
         self.canActivateButtons= False
-        self.canBet=False
         self.ShowDealerCard()
         self.dealerTotalLabel.setText("Total : " + str(self.game.dealer_total()))
-        #self.DealerTurn()
+        self.DealerTurn()
 
 
     def on_new_round(self):
@@ -596,7 +607,6 @@ class MainWindow(QMainWindow):
         self.game.new_round()
         self.new_round_setup()
     def update_dealer_cards(self, full=False):
-        self.clear_layout(self.dealerCardsLayout)
         self.dealerCards = 0
         self.dealerFaceDownCard = None
 
@@ -654,8 +664,14 @@ class MainWindow(QMainWindow):
             self.playedChips[i] = []
 
     def end_round(self):
-        result = self.game.decide_winner()
-        self.playerMoney = self.game.resolve_bet(result)
+        res = self.game.decide_winner()
+        print(res)
+        money = self.playerMoney+self.game.resolve_bet(res)
+        delta = money - self.playerMoney
+        if delta>0:
+            animtime = 1000//delta
+            self.MoneyAnimation(money,animtime)
+
         self.on_new_round()
 
     def NextTrack(self,status):
@@ -677,7 +693,7 @@ class MainWindow(QMainWindow):
             while betAmount > self.chipsValue[i]:
                 betAmount -= self.chipsValue[i]
                 chips.append(i)
-        while (betAmount > 0):
+        while betAmount > 0:
             betAmount -= self.chipsValue[0]
             chips.append(0)
         self.StaggeredChips(chips)
@@ -724,20 +740,23 @@ class MainWindow(QMainWindow):
     def OpenSettings(self):
         self.settingsDialog.exec()
 
-    def lose(self):
-        pass
-
     def DealerTurn(self):
         DoesDealerDraw = self.game.dealer_turn()
+        self.setDealerTotal()
         if DoesDealerDraw:
             card = self.game.dealer_draw()
             self.CardDrawAnimation(card,False)
-            QTimer.singleShot(100, lambda : self.DealerTurn())
-        self.EvaluateWin()
+            QTimer.singleShot(1000, lambda : self.DealerTurn())
+        else:
+            QTimer.singleShot(3000, lambda : self.end_round())# time for animations to finish
 
-    def EvaluateWin(self):
-        pass
     #endregion
+    def confirmBet(self):
+        if self.canBet and self.canActivateButtons:
+            self.game.Bet(self.betAmount)
+            self.canBet=False
+            self.DrawInitialCards()
+
 
 # complete
 
