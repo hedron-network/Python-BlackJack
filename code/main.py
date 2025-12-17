@@ -1,49 +1,52 @@
-from PyQt6.QtGui import QPixmap, QPainter
+from PyQt6.QtGui import QPixmap, QPainter, QIcon
 from PyQt6.QtMultimedia import QMediaPlayer
-from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel, QWidget, QVBoxLayout, QHBoxLayout, QPushButton
+from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, \
+    QGridLayout
 from PyQt6.QtCore import Qt, QEasingCurve, QPropertyAnimation, QRect, pyqtProperty, QTimer
 import sys
 
-from flake8.style_guide import Selected
-from tornado.gen import sleep
+from holoviews import Overlay
 
 # this project should use a modular approach - try to keep UI logic and game logic separate
 from game_logic import Game21
-from custom_widgets import AudioPlayer,FlippableCard
+from custom_widgets import AudioPlayer,FlippableCard, QLabel_clickable
 
 
 class MainWindow(QMainWindow):
 
     def __init__(self):
         super().__init__()
+        self.playerMoney = 1_000
         self.hiddenCard = None
         self.setWindowTitle("Game of 21")
 
         # set the windows dimensions
-        self.setGeometry(200, 50, 700, 700)
+        self.setGeometry(100, 50, 1000, 700)
         self.mainContainer = QWidget()
         self.mainContainer.setObjectName("mainContainer")
         self.mainContainer.setContentsMargins(0, 0, 0, 0)
         self.setCentralWidget(self.mainContainer)
 
-
+        #region Asset Loading
         self.game = Game21()
+        self.chips = []
+        self.isometricChips = []
+        self.chipsValue = [5,10,25,50,100,500]
         self.cards = []
         self.cardBack = None
         self.deckAsset = None
         self.audioPlayer = None
         self.InfoBar = None
         self.soundEffectPlayer = None
+        self.backgroundPixmap = None
         self.loadAssets()
         if len(self.cards) == 0 or self.cardBack is None or self.deckAsset is None:
             print("Error Loading Cards Assets")
+        #endregion
         self.initUI()
 
 
     def initUI(self):
-        # Create and arrange widgets and layout. Remove pass when complete.
-        pass
-
         #region Container Setup
 
         self.background = QLabel(self.mainContainer)
@@ -130,18 +133,45 @@ class MainWindow(QMainWindow):
         # endregion
 
         #region Betting
-        #endregion
-
-        self.bottomRightContainerLayout = QVBoxLayout()
+        self.bottomRightContainerLayout = QHBoxLayout()
+        self.bottomRightContainerLayout.addStretch(2)
         self.bottomRightContainer.setLayout(self.bottomRightContainerLayout)
-        self.drawButton = QPushButton("Draw")
-        self.bottomRightContainerLayout.addWidget(self.drawButton)
+        self.bettingLayout = QVBoxLayout()
+        self.chipsLayout = QGridLayout()
+        self.chipsLayout.setSpacing(0)
+        self.chipsLayout.setContentsMargins(0,0,0,0)
+        self.bettingLayout.addLayout(self.chipsLayout)
+        self.bottomRightContainerLayout.addLayout(self.bettingLayout, Qt.AlignmentFlag.AlignRight)
+        print(len(self.chips))
+        for i in range(0,len(self.chips)):
+            chipButton = QLabel_clickable()
+            chipButton.setObjectName("chipButton")
+            chipButton.setPixmap(self.chips[i])
+            chipButton.clicked.connect(lambda t=i: self.Bet(t))
+            self.chipsLayout.addWidget(chipButton,i//3,i%3)
+            OverlayLabel = QLabel(chipButton)
+            OverlayLabel.setGeometry(20,20,25,20)
+            OverlayLabel.setText(str(self.chipsValue[i]) + "$")
+            OverlayLabel.setObjectName("overlayLabel")
+            OverlayLabel.setAttribute(
+                Qt.WidgetAttribute.WA_TransparentForMouseEvents
+            )
+        self.AllInButton = QPushButton("All In")
+        self.AllInButton.clicked.connect(lambda : self.Bet(-1))
+        self.bettingLayout.addWidget(self.AllInButton)
+        self.bettingLayout.addStretch()
+        # endregion
 
-        self.drawButton.clicked.connect(lambda : self.StartRound())
-        self.revealButton = QPushButton("Reveal")
-        self.bottomRightContainerLayout.addWidget(self.revealButton)
-        self.revealButton.clicked.connect( lambda : self.ShowDealerCard())
-        self.bottomRightContainerLayout.addWidget(self.ShowCurrentTrackButton)
+        #region Chips
+        self.bottomLeftContainerLayout = QVBoxLayout()
+        self.bottomLeftContainer.setLayout(self.bottomLeftContainerLayout)
+        self.chipsContainer = QWidget()
+        self.chipsContainer.setFixedWidth(4*64)
+        self.bottomLeftContainerLayout.addWidget(self.chipsContainer)
+        self.playedChips= []
+        for i in range(0,len(self.chips)):
+            self.playedChips.append([])
+        #endregion
 
         #region Cards Containers
         self.playerCardsContainer = QWidget(self.bottomContainer)
@@ -170,23 +200,62 @@ class MainWindow(QMainWindow):
         self.dealerCardsContainer.setGeometry(self.topContainer.contentsRect())
         # endregion
 
+        """
+        self.bottomRightContainerLayout = QVBoxLayout()
+        self.bottomRightContainer.setLayout(self.bottomRightContainerLayout)
+        self.drawButton = QPushButton("Draw")
+        self.bottomRightContainerLayout.addWidget(self.drawButton)
+
+        self.drawButton.clicked.connect(lambda : self.StartRound())
+        self.revealButton = QPushButton("Reveal")
+        self.bottomRightContainerLayout.addWidget(self.revealButton)
+        self.revealButton.clicked.connect( lambda : self.ShowDealerCard())
+        self.bottomRightContainerLayout.addWidget(self.ShowCurrentTrackButton)
+        """
         # TODO: Dealer Section with cards
         self.dealerCards =0
         # TODO: Player Section with cards
         self.playerCards = 0
         #  TODO: Buttons for hit, stand, new round
+        self.BottomButtonContainer = QWidget(self.bottomContainer)
+        self.hitButton = QPushButton("Hit")
+        self.setObjectName("hitButton")
+        self.hitButton.clicked.connect(lambda : self.on_hit())
 
+        self.standButton = QPushButton("Stand")
+        self.setObjectName("standButton")
+        self.standButton.clicked.connect(lambda : self.on_stand())
+
+        self.NewRoundButton = QPushButton("New Round")
+        self.NewRoundButton.setObjectName("NewRoundButton")
+        self.NewRoundButton.clicked.connect(lambda :self.StartRound())
+        bottomLayout = QVBoxLayout()
+        self.BottomButtonContainer.setLayout(bottomLayout)
+        bottomLayout.addStretch()
+        self.buttonLayout = QHBoxLayout()
+        bottomLayout.addLayout(self.buttonLayout)
+        self.buttonLayout.addStretch()
+        self.buttonLayout.addWidget(self.hitButton)
+        self.buttonLayout.addWidget(self.standButton)
+        self.buttonLayout.addWidget(self.NewRoundButton)
+        self.buttonLayout.addStretch()
         #  TODO: Feedback
 
         #  TODO: Add widgets to layout
 
         #  TODO: Trigger a new layout with a new round
+        self.background.setPixmap(self.backgroundPixmap)
         self.background.lower()
         self.animationOverlayContainer.raise_()
         self.audioPlayer.play()
         self.ShowCurrentTrack()
+        self.StartRound()
 
     def loadAssets(self):
+        for i in range(0,len(self.chipsValue)):
+            self.chips.append(QPixmap("./assets/chips/Flat/sprite_" + str(i) + ".png").scaled(64,64))
+            self.isometricChips.append(QPixmap("./assets/chips/Isometric/sprite_" + str(i) + ".png"))
+
         for suit in self.game.suits:
             for rank in self.game.ranks:
                 pixmap = QPixmap("./assets/cards/fronts/" + rank + suit + "_card.png").scaled(88,124)
@@ -201,6 +270,8 @@ class MainWindow(QMainWindow):
         trackNames = ["draw","flip","single_chip","allin"]
         self.soundEffectPlayer = AudioPlayer(soundEffects,trackNames,self.mainContainer)
 
+        self.backgroundPixmap = QPixmap("./assets/UI elements/background.jpg")
+
     """fix for self.bottomContainer.contentsRect() returning incorrect values"""
     def showEvent(self, event):
         super().showEvent(event)
@@ -209,6 +280,10 @@ class MainWindow(QMainWindow):
         )
         self.dealerCardsContainer.setGeometry(self.topContainer.contentsRect())
         self.background.setGeometry(self.mainContainer.contentsRect())
+        self.BottomButtonContainer.setGeometry(
+            self.bottomContainer.width() // 3, 0,
+            self.bottomContainer.width() // 3, self.bottomContainer.height()
+        )
 
 
     """Resize overlays"""
@@ -231,10 +306,16 @@ class MainWindow(QMainWindow):
                 self.mediaInfoBarContainer.size().width(),
                 self.mediaInfoBarContainer.size().height()
             )
+        if hasattr(self, 'BottomButtonContainer'):
+            self.BottomButtonContainer.setGeometry(
+                self.bottomContainer.width()//3,0,
+                self.bottomContainer.width()//3, self.bottomContainer.height()
+            )
     # BUTTON ACTIONS
 
     def StartRound(self):
-        #self.game.new_round()
+        self.game.new_round()
+        self.ClearChips()
         self.playerCards = 0
         self.dealerCards=0
         self.clear_layout(self.playerCardsLayout)
@@ -254,11 +335,12 @@ class MainWindow(QMainWindow):
         cardDrawAnimation = QPropertyAnimation(animatedCard, b"geometry")
         cardDrawAnimation.setStartValue(startPosition)
         if isPlayerDrawing:
+            print(self.playerCards)
             cardsInHand = self.playerCards
             self.playerCards+=1
             endPosition = QRect(
                 int(self.width() // 2 - animatedCard.width() // 2* cardsInHand + (animatedCard.width() + 3) * cardsInHand),
-                self.playerCardsContainer.geometry().y()+9 + self.bottomContainer.pos().y(),
+                self.height()//2+9,
                 animatedCard.width(),
                 animatedCard.height())
             cardDrawAnimation.setEndValue(endPosition)
@@ -268,7 +350,7 @@ class MainWindow(QMainWindow):
             endPosition = QRect(
                 int(self.width() // 2 - animatedCard.width() // 2 * cardsInHand + (
                             animatedCard.width() + 3) * cardsInHand),
-                int(self.dealerCardsContainer.geometry().y()+ self.dealerCardsContainer.height()-(124+5)),
+                int(self.height()//2-animatedCard.height()-18),
                 animatedCard.width(),
                 animatedCard.height())
             cardDrawAnimation.setEndValue(endPosition)
@@ -324,16 +406,18 @@ class MainWindow(QMainWindow):
 
     def on_hit(self):
         # Player takes a card
-        card = self.game.player_hit()
-        self.add_card(self.playerCardsLayout, card)
+        #card = self.game.player_hit()
+        card = "10♠"
+        self.CardDrawAnimation(card, True)
 
-        if self.game.player_total() > 21:
+        """if self.game.player_total() > 21:
           # TODO: what should happen if a player goes over 21? Remove pass when complete
-          pass
+          pass"""
 
     def on_stand(self):
-        self.game.player_stand()
-        pass
+        #self.game.player_stand()
+        self.ShowDealerCard()
+
 
     def on_new_round(self):
         self.game.new_round()
@@ -392,6 +476,9 @@ class MainWindow(QMainWindow):
 
 
     def new_round_setup(self):
+        for chipType in self.playedChips:
+            for chip in chipType:
+                chip.deleteLater()
         # TODO: Prepare a fresh visual layout
 
         # TODO: update relevant labels (reset dealer and player totals)
@@ -436,7 +523,54 @@ class MainWindow(QMainWindow):
                 lambda: QTimer.singleShot(2000, lambda: self.ShowCurrentTrack(False))
             )
         self.InfoBarAnimation.start()
+    def PlayChip(self, chipIndex):
+        Newchip = QLabel(self.chipsContainer)
+        Newchip.setGeometry(32*chipIndex, 0,64,64)
+        Newchip.setPixmap(self.chips[chipIndex])
+        Newchip.show()
+        offset = 10*len(self.playedChips[chipIndex])
+        self.playedChips[chipIndex].append(Newchip)
+        animation = QPropertyAnimation(Newchip, b"geometry")
+        animation.setDuration(500)
+        if chipIndex %2== 0:
+            targetHeight= self.chipsContainer.height()//2-offset
+        else:
+            targetHeight= self.chipsContainer.height()//2+32-offset
+        for i in range(0,len(self.playedChips)):
+            if i %2 !=0:
+                for chip in self.playedChips[i]:
+                    chip.raise_()
+        animation.setStartValue(QRect(32*chipIndex, 0, 64, 64))
+        animation.setEndValue(QRect(32 * chipIndex, targetHeight,64,64))
+        animation.setEasingCurve(QEasingCurve.Type.InOutCubic)
+        animation.finished.connect(lambda : animation.deleteLater())
+        self.activeAnimations.append(animation)
+        animation.start()
+    def AllIn(self,betAmount):
+        for i in range (len(self.chipsValue)-1,-1,-1):
+            while betAmount > self.chipsValue[i]:
+                betAmount -= self.chipsValue[i]
+                self.PlayChip(i)
+        while (betAmount > 0):
+            betAmount -= self.chipsValue[0]
+            self.PlayChip(0)
+    def Bet(self, t):
+        if t> self.playerMoney:
+            return
+        if t==-1:
+            self.soundEffectPlayer.playAt(3)
+            betAmount = self.playerMoney
+            self.AllIn(betAmount)
+        else:
+            self.soundEffectPlayer.playAt(2)
+            betAmount = self.chipsValue[t]
+            self.PlayChip(t)
+        self.playerMoney -= betAmount
 
+    def ClearChips(self):
+        for chipType in self.playedChips:
+            for chip in chipType:
+                chip.deleteLater()
 
 
 # complete

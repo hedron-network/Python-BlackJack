@@ -1,11 +1,14 @@
 from tkinter.tix import Select
 
-from PyQt6.QtCore import QUrl, pyqtProperty, Qt
+from PyQt6.QtCore import QUrl, pyqtProperty, Qt, pyqtSignal
 from PyQt6.QtGui import QPixmap, QPainter
 from PyQt6.QtMultimedia import QAudioOutput, QMediaPlayer
 from PyQt6.QtWidgets import QWidget, QLabel
 
-
+class QLabel_clickable(QLabel):
+    clicked=pyqtSignal()
+    def mousePressEvent(self, event):
+        self.clicked.emit()
 class AudioPlayer(QWidget):
     def __init__(self,audioSources,trackNames,parent=None):
         super().__init__(parent)

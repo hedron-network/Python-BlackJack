@@ -1,5 +1,11 @@
+QLabel{
+    color: aliceblue;
+}
+QLabel#overlayLabel{
+    color: #000;
+}
 QWidget#mainContainer{
-    background-color: rgb(0, 128, 128);
+    background-color: transparent;
 }
 QWidget#topLeftContainer{
     background-color: transparent;
@@ -14,7 +20,7 @@ QWidget#bottomRightContainer{
     background-color: transparent;
 }
 QWidget#bottomContainer{
-    background-color: red;
+    background-color: transparent;
 }
 QWidget#animationOverlayContainer{
     border: 2px solid black;
