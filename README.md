@@ -24,12 +24,12 @@ The final goal of the application is to provide an intuitive and professional lo
 
 ### Phase 2: Required UI Features
 - [ ] **Responsive Window Design** - Layout reflows sensibly when resized
-- [ ] **Player Hand Display** - Show cards and current total clearly
-- [ ] **Dealer Hand Display** - Show cards with face-down card until reveal, display total
+- [x] **Player Hand Display** - Show cards and current total clearly
+- [x] **Dealer Hand Display** - Show cards with face-down card until reveal, display total
 - [ ] **Control Buttons** - Hit, Stand, and New Round buttons
 - [ ] **Scoreboard** - Display player and dealer hand totals prominently
 - [ ] **Visual Feedback** - Clear win/lose/push indication at round end
-- [ ] **Card Images** - Use graphical card images (or clear text representations)
+- [x] **Card Images** - Use graphical card images 
 
 ### Phase 3: Design & Accessibility
 - [ ] **External Stylesheet** - Separate QSS file for styling
@@ -46,8 +46,8 @@ The final goal of the application is to provide an intuitive and professional lo
 - [ ] **Settings Panel** - Adjust font size, contrast, animation speed
 
 ### Phase 5: Animations & Polish
-- [ ] **Card Draw Animation** - Smooth card dealing animation
-- [ ] **Card Flip Animation** - Reveal dealer's face-down card with flip effect
+- [x] **Card Draw Animation** - Smooth card dealing animation
+- [x] **Card Flip Animation** - Reveal dealer's face-down card with flip effect
 - [ ] **Dealer Idle Animation** - Optional idle animation for dealer character
 - [ ] **Smooth Transitions** - Polish all state changes with subtle animations
 

@@ -1,0 +1,36 @@
+QLabel{
+    color: aliceblue;
+}
+QLabel#SettingsLabel{
+    color: #000;
+}
+QLabel#overlayLabel{
+    color: #000;
+}
+QWidget#mainContainer{
+    background-color: transparent;
+}
+QWidget#topLeftContainer{
+    background-color: transparent;
+}
+QWidget#topRightContainer{
+    background-color: transparent;
+}
+QWidget#bottomLeftContainer{
+    background-color: transparent;
+}
+QWidget#bottomRightContainer{
+    background-color: transparent;
+}
+QWidget#bottomContainer{
+    background-color: transparent;
+}
+QWidget#animationOverlayContainer{
+    background: transparent;
+}
+QWidget#cardsContainer{
+    background: transparent;
+}
+QLabel#deck{
+    padding: 10;
+}
