@@ -115,6 +115,28 @@ class Game21:
 
         return self.hand_total(self.player_hand)
 
+    """ 
+    Calculates the total value of a hand. 
+    Aces are automatically treated as 11, but converted to 1 if the total exceeds 21 (J'ai check les règles). 
+    """
+
+    def calculate_score(hand):
+        score = 0
+        aces = 0
+        for card in hand:
+            if card['rank'] in ['Jack', 'Queen', 'King']:
+                score = score + 10
+            elif card['rank'] == 'Ace':
+                aces += 1
+                score += 11
+            else:
+                score += int(card['rank'])
+
+        while score > 21 and aces > 0:
+            score -= 10
+            aces -= 1
+        return score
+
     """
     Dealer actions
     """
