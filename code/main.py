@@ -1,58 +1,39 @@
 from PyQt6.QtGui import QPixmap, QPainter
+from PyQt6.QtMultimedia import QMediaPlayer
 from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel, QWidget, QVBoxLayout, QHBoxLayout, QPushButton
-from PyQt6.QtCore import Qt, QEasingCurve, QPropertyAnimation, QRect, pyqtProperty
+from PyQt6.QtCore import Qt, QEasingCurve, QPropertyAnimation, QRect, pyqtProperty, QTimer
 import sys
+
+from flake8.style_guide import Selected
+from tornado.gen import sleep
 
 # this project should use a modular approach - try to keep UI logic and game logic separate
 from game_logic import Game21
-
-
-class FlippableCard(QLabel):
-    def __init__(self, front: QPixmap, back: QPixmap,parent=None):
-        super().__init__(parent)
-        self.front = front
-        self.back = back
-        self._flip = 0.0
-        self.setFixedSize(front.size())
-
-    @pyqtProperty(float)
-    def flip(self):
-        return self._flip
-
-    @flip.setter
-    def flip(self, value: float):
-        self._flip = value
-        if value <= 0.5:
-            scale = 1.0 - (value * 2)
-            pixmap = self.front
-        else:
-            scale = (value - 0.5) * 2
-            pixmap = self.back
-        new_width = int(pixmap.width() * scale)
-        scaled = pixmap.scaled(new_width, pixmap.height())
-
-        # center offset
-        x_offset = (self.width() - new_width) // 2
-        result = QPixmap(self.size())
-        result.fill(Qt.GlobalColor.transparent)
-        painter = QPainter(result)
-        painter.drawPixmap(x_offset, 0, scaled)
-        painter.end()
-        self.setPixmap(result)
+from custom_widgets import AudioPlayer,FlippableCard
 
 
 class MainWindow(QMainWindow):
 
     def __init__(self):
         super().__init__()
+        self.hiddenCard = None
         self.setWindowTitle("Game of 21")
 
         # set the windows dimensions
         self.setGeometry(200, 50, 700, 700)
+        self.mainContainer = QWidget()
+        self.mainContainer.setObjectName("mainContainer")
+        self.mainContainer.setContentsMargins(0, 0, 0, 0)
+        self.setCentralWidget(self.mainContainer)
+
+
         self.game = Game21()
         self.cards = []
         self.cardBack = None
         self.deckAsset = None
+        self.audioPlayer = None
+        self.InfoBar = None
+        self.soundEffectPlayer = None
         self.loadAssets()
         if len(self.cards) == 0 or self.cardBack is None or self.deckAsset is None:
             print("Error Loading Cards Assets")
@@ -64,12 +45,10 @@ class MainWindow(QMainWindow):
         pass
 
         #region Container Setup
-        self.mainContainer = QWidget()
-        self.mainContainer.setObjectName("mainContainer")
-        self.mainContainer.setContentsMargins(0, 0, 0, 0)
-        self.setCentralWidget(self.mainContainer)
 
+        self.background = QLabel(self.mainContainer)
         self.activeAnimations = []
+        self.dealerFaceDownCard = None
         self.animationOverlayContainer = QWidget(self.mainContainer) # makes an overlay widget
         self.animationOverlayContainer.setContentsMargins(0, 0, 0, 0)
         self.animationOverlayContainer.setObjectName("animationOverlayContainer")
@@ -132,11 +111,39 @@ class MainWindow(QMainWindow):
         self.cardToDraw.setGeometry(self.DrawCardStartGeometry())
         #endregion
 
+        # region MediaInfoBar
+        self.audioPlayer.player.mediaStatusChanged.connect(lambda status: self.NextTrack(status))
+        self.mediaInfoBarContainer = QWidget(self.topLeftContainer)
+        self.mediaInfoBarContainer.setGeometry(0, 0, 0, 40)  # Start with 0 width
+        self.mediaInfoBar = QLabel(self.mediaInfoBarContainer)
+        self.mediaInfoBar.setPixmap(self.InfoBar)
+
+        # Create layout for the text on top
+        layout = QHBoxLayout(self.mediaInfoBarContainer)
+        self.currentTrackLabel = QLabel()
+        self.currentTrackLabel.setObjectName("currentTrackLabel")
+        self.currentTrackLabel.setStyleSheet("background: transparent;")  # Make text background transparent
+        layout.addWidget(self.currentTrackLabel)
+
+        self.ShowCurrentTrackButton = QPushButton("show current track")
+        self.ShowCurrentTrackButton.clicked.connect(lambda: self.ShowCurrentTrack())
+        # endregion
+
+        #region Betting
+        #endregion
+
         self.bottomRightContainerLayout = QVBoxLayout()
         self.bottomRightContainer.setLayout(self.bottomRightContainerLayout)
         self.drawButton = QPushButton("Draw")
         self.bottomRightContainerLayout.addWidget(self.drawButton)
 
+        self.drawButton.clicked.connect(lambda : self.StartRound())
+        self.revealButton = QPushButton("Reveal")
+        self.bottomRightContainerLayout.addWidget(self.revealButton)
+        self.revealButton.clicked.connect( lambda : self.ShowDealerCard())
+        self.bottomRightContainerLayout.addWidget(self.ShowCurrentTrackButton)
+
+        #region Cards Containers
         self.playerCardsContainer = QWidget(self.bottomContainer)
         self.playerCardsContainer.setAttribute(
             Qt.WidgetAttribute.WA_TransparentForMouseEvents
@@ -146,9 +153,9 @@ class MainWindow(QMainWindow):
         self.playerCardsContainer.setLayout(self.playerCardsLayout)
         self.playerCardsLayout.setSpacing(5)
         self.playerCardsLayout.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignCenter)
-
-        self.drawButton.clicked.connect(lambda : self.StartRound())
         self.playerCardsContainer.setGeometry(self.bottomContainer.contentsRect())
+
+
 
 
         self.dealerCardsContainer = QWidget(self.topContainer)
@@ -161,6 +168,7 @@ class MainWindow(QMainWindow):
         self.dealerCardsLayout.addSpacing(5)
         self.dealerCardsLayout.setAlignment(Qt.AlignmentFlag.AlignBottom | Qt.AlignmentFlag.AlignCenter)
         self.dealerCardsContainer.setGeometry(self.topContainer.contentsRect())
+        # endregion
 
         # TODO: Dealer Section with cards
         self.dealerCards =0
@@ -173,8 +181,10 @@ class MainWindow(QMainWindow):
         #  TODO: Add widgets to layout
 
         #  TODO: Trigger a new layout with a new round
-
+        self.background.lower()
         self.animationOverlayContainer.raise_()
+        self.audioPlayer.play()
+        self.ShowCurrentTrack()
 
     def loadAssets(self):
         for suit in self.game.suits:
@@ -183,6 +193,14 @@ class MainWindow(QMainWindow):
                 self.cards.append(pixmap)
         self.cardBack = QPixmap("./assets/cards/backs/Flat/Card_Back.png")
         self.deckAsset = QPixmap("./assets/cards/backs/Flat/Card_DeckA-88x140.png").scaled(88, 140)
+        audioSources =["./assets/sounds/All That Jazz.mp3"]
+        trackNames = ["All That Jazz"]
+        self.audioPlayer= AudioPlayer(audioSources,trackNames,self.mainContainer)
+        self.InfoBar = QPixmap("./assets/UI elements/bar.png").scaled(200,5)
+        soundEffects = ["./assets/sounds/card-draw-sound.mp3","./assets/sounds/flipcard.mp3","./assets/sounds/single_poker_chip.mp3","./assets/sounds/allin.mp3"]
+        trackNames = ["draw","flip","single_chip","allin"]
+        self.soundEffectPlayer = AudioPlayer(soundEffects,trackNames,self.mainContainer)
+
     """fix for self.bottomContainer.contentsRect() returning incorrect values"""
     def showEvent(self, event):
         super().showEvent(event)
@@ -190,10 +208,14 @@ class MainWindow(QMainWindow):
             self.bottomContainer.contentsRect()
         )
         self.dealerCardsContainer.setGeometry(self.topContainer.contentsRect())
+        self.background.setGeometry(self.mainContainer.contentsRect())
+
 
     """Resize overlays"""
     def resizeEvent(self, event):
         super().resizeEvent(event)
+        if hasattr(self, "background"):
+            self.background.setGeometry(self.mainContainer.contentsRect())
         if hasattr(self, 'animationOverlayContainer'):
             self.animationOverlayContainer.setGeometry(self.mainContainer.rect())
         if hasattr(self, 'cardToDraw'):
@@ -202,6 +224,13 @@ class MainWindow(QMainWindow):
             self.playerCardsContainer.setGeometry(self.bottomContainer.contentsRect())
         if hasattr(self, 'dealerCardsContainer'):
             self.dealerCardsContainer.setGeometry(self.topContainer.contentsRect())
+        if hasattr(self, 'mediaInfoBar') and hasattr(self, 'mediaInfoBarContainer'):
+            self.mediaInfoBar.setGeometry(
+                self.mediaInfoBarContainer.geometry().x(),
+                self.mediaInfoBarContainer.geometry().y()+10,
+                self.mediaInfoBarContainer.size().width(),
+                self.mediaInfoBarContainer.size().height()
+            )
     # BUTTON ACTIONS
 
     def StartRound(self):
@@ -215,6 +244,7 @@ class MainWindow(QMainWindow):
             self.CardDrawAnimation(card, True, True)
         self.update_dealer_cards()
     def CardDrawAnimation(self,cardToDraw, isPlayerDrawing, reveal=True):
+        self.soundEffectPlayer.playAt(0)
         animatedCard = QLabel(self.animationOverlayContainer)
         animatedCard.setPixmap(self.cardBack)
         animatedCard.setGeometry(self.DrawCardStartGeometry())
@@ -289,7 +319,7 @@ class MainWindow(QMainWindow):
         rank = card[:-1]
         suitIndex = self.game.suits.index(suit)
         rankIndex = self.game.ranks.index(rank)
-        cardIndex = 14* suitIndex + rankIndex
+        cardIndex = 13* suitIndex + rankIndex
         return self.cards[cardIndex]
 
     def on_hit(self):
@@ -323,24 +353,43 @@ class MainWindow(QMainWindow):
         NewCardLabel = QLabel(self.animationOverlayContainer)
         NewCardLabel.setPixmap(self.CardToPixmap(card))
         NewCardLabel.setFixedSize(88,124)
+        if card == "??":
+            self.hiddenCard = NewCardLabel
         layout.addWidget(NewCardLabel)
         NewCardLabel.show()
 
     def update_dealer_cards(self, full=False):
-        # Show dealer cards; hide the first card until revealed
         self.clear_layout(self.dealerCardsLayout)
+        self.dealerCards = 0
+        self.dealerFaceDownCard = None
 
         for i, card in enumerate(self.game.dealer_hand):
-            if i == 0 and not full:
-                self.CardDrawAnimation("??",False,False)   # face-down
+            if i == 1 and not full:
+                self.dealerFaceDownCard = card
+                self.CardDrawAnimation("??", False, False)
             else:
-                self.CardDrawAnimation(card, False,True)
+                self.CardDrawAnimation(card, False, True)
 
         # TODO: update relevant labels in response to dealer actions. Remove pass when complete
         if full:
             pass
         else:
             pass
+    def ShowDealerCard(self):
+        if self.dealerFaceDownCard == "":
+            return
+        self.soundEffectPlayer.playAt(1)
+        cardGeometry = self.DrawCardStartGeometry()
+        geometry = QRect(
+            int(self.width() // 2 - cardGeometry.width() // 2 * 0 + (
+                    cardGeometry.width() + 3) * 0),
+            int(self.dealerCardsContainer.geometry().y() + self.dealerCardsContainer.height() - (124 + 5)),
+            cardGeometry.width(),
+            cardGeometry.height())
+        self.CardRevealAnimation(self.dealerCardsLayout, self.dealerFaceDownCard,geometry)
+        self.hiddenCard.deleteLater()
+        self.dealerFaceDownCard = ""
+
 
     def new_round_setup(self):
         # TODO: Prepare a fresh visual layout
@@ -356,6 +405,37 @@ class MainWindow(QMainWindow):
     def end_round(self):
         # TODO: Disable button actions after the round ends. Remove pass when complete
         pass
+
+    def NextTrack(self,status):
+        if status != QMediaPlayer.MediaStatus.EndOfMedia:
+            return
+        if self.audioPlayer.selected<self.audioPlayer.sounds:
+            self.audioPlayer.selected+=1
+        else:
+            self.audioPlayer.selected=0
+        self.audioPlayer.SelectTrack(self.audioPlayer.selected)
+        self.audioPlayer.play()
+
+    def ShowCurrentTrack(self,fold=True):
+
+        self.currentTrackLabel.setText("Currently Playing: " + self.audioPlayer.CurrentTrack())
+        self.InfoBarAnimation = QPropertyAnimation(self.mediaInfoBarContainer, b"geometry")
+        if fold:
+            self.InfoBarAnimation.setStartValue(QRect(0, 0, 0, 40))
+            self.InfoBarAnimation.setEndValue(QRect(0, 0, 200, 40))
+        else:
+            self.InfoBarAnimation.setStartValue(QRect(0, 0, 200, 40))
+            self.InfoBarAnimation.setEndValue(QRect(0, 0, 0, 40))
+        self.InfoBarAnimation.setDuration(1000)
+        self.InfoBarAnimation.setEasingCurve(QEasingCurve.Type.InOutCubic)
+        self.InfoBarAnimation.valueChanged.connect(
+            lambda: self.mediaInfoBar.setGeometry(0, 10, self.mediaInfoBarContainer.width(), 40)
+        )
+        if fold:
+            self.InfoBarAnimation.finished.connect(
+                lambda: QTimer.singleShot(2000, lambda: self.ShowCurrentTrack(False))
+            )
+        self.InfoBarAnimation.start()
 
 
 
