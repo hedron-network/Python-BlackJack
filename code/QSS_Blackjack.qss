@@ -1,3 +1,11 @@
+QLabel#background{
+    background-image: url("./assets/UI elements/background.jpg");
+    background-repeat: repeat-y;
+    background-position: center;
+    background-origin: content;
+    background-clip: content;
+}
+
 QLabel{
     color: aliceblue;
 }
@@ -6,6 +14,25 @@ QLabel#SettingsLabel{
 }
 QLabel#overlayLabel{
     color: #000;
+}
+QLabel#staticInfoLabel{
+    color: gold;
+    font: arial;
+}
+QLabel#CurrentMoneyLabel{
+    color: gold;
+    font: arial;
+    font-size: 80px;
+}
+QLabel#CurrentBetLabel{
+    color: gold;
+    font: arial;
+    font-size: 40px;
+}
+QWidget#PlayerInformationContainer{
+    border: 5px solid gold;
+    border-bottom-left-radius: 150;
+    border-bottom-right-radius: 150;
 }
 QWidget#mainContainer{
     background-color: transparent;

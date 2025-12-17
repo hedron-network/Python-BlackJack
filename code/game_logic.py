@@ -19,6 +19,7 @@ class Game21:
 
         self.deck = self.create_deck()
         random.shuffle(self.deck)
+        print("New round started")
 
         # Index of the "next card" to deal
         self.deck_position = 0
@@ -29,6 +30,7 @@ class Game21:
 
         # The first dealer card starts hidden until Stand is pressed
         self.dealer_hidden_revealed = False
+        self.deal_initial_cards()
 
     """
     Deal two cards each to player and dealer.
@@ -91,18 +93,14 @@ class Game21:
     Adds a card and checks if the player is allowed to continue.
     """
 
-    def player_hit(self,deck, player_hand):
-        player_hand.append(deck.pop())
+    def player_hit(self):
+        self.player_hand.append(self.deck.pop(0))
         score = self.calculate_score(self.player_hand)
-
-        if score > 21:
-            return player_hand, False
-        return player_hand, True
+        return score
 
     """Return the player's total."""
 
     def player_total(self):
-
         return self.hand_total(self.player_hand)
 
     """ 
