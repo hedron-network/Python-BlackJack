@@ -11,12 +11,10 @@ def get_image_path(card):
 
 class Game21:
     """ Initializes the game and starts a fresh round. """
-
     def __init__(self):
         self.new_round()
 
-    """ Prepares for a new round by creating a deck and resetting hands. """
-
+    """ Prepares for a new round. """
     def new_round(self):
         self.deck = self.create_deck()
         random.shuffle(self.deck)
@@ -24,30 +22,26 @@ class Game21:
         self.dealer_hand = []
         self.dealer_hidden_revealed = False
 
-    """ Deals two cards to both the player and the dealer. """
-
+    """ Deals two cards to both player and dealer. """
     def deal_initial_cards(self):
-        self.player_hit()
-        self.player_hit()
-        self.dealer_hit()
-        self.dealer_hit()
+        self.player_draw()
+        self.player_draw()
+        self.dealer_draw()
+        self.dealer_draw()
 
-    """ Creates a standard 52-card deck as text strings. """
-
+    """ Creates a standard 52-card deck. """
     def create_deck(self):
         ranks = ["A"] + [str(n) for n in range(2, 11)] + ["J", "Q", "K"]
         suits = ["♠", "♥", "♦", "♣"]
         return [f"{rank}{suit}" for rank in ranks for suit in suits]
 
     """ Removes and returns the top card from the deck. """
-
     def draw_card(self):
         if len(self.deck) > 0:
             return self.deck.pop()
         return None
 
     """ Converts a card string into its numeric value. """
-
     def card_value(self, card):
         rank = card[:-1]
         if rank in ["J", "Q", "K"]:
@@ -56,8 +50,7 @@ class Game21:
             return 11
         return int(rank)
 
-    """ Calculates the best possible total score for a hand, handling Aces. """
-
+    """ Calculates the total score of a hand, handling Aces. """
     def hand_total(self, hand):
         total = sum(self.card_value(card) for card in hand)
         aces = sum(1 for card in hand if card.startswith("A"))
@@ -66,72 +59,48 @@ class Game21:
             aces -= 1
         return total
 
-    """ Handles player logic for hitting or standing. """
+    """ Returns True if the dealer must draw a card (score < 17). """
+    def dealer_turn(self):
+        return self.hand_total(self.dealer_hand) < 17
 
-    def hit_or_stand_choice(self, player_choice):
-        if player_choice == 'stand':
-            return False
-        elif player_choice == 'hit':
-            self.player_hit()
-            return self.player_total() < 21
-        return True
-
-    """ Adds a card to the player's hand and returns it. """
-
-    def player_hit(self):
+    """ Draws a card for the player and returns it. """
+    def player_draw(self):
         card = self.draw_card()
         if card:
             self.player_hand.append(card)
         return card
 
-    """ Returns the player's current hand total. """
-
-    def player_total(self):
-        return self.hand_total(self.player_hand)
-
-    """ Adds a card to the dealer's hand and returns it. """
-
-    def dealer_hit(self):
+    """ Draws a card for the dealer and returns it. """
+    def dealer_draw(self):
         card = self.draw_card()
         if card:
             self.dealer_hand.append(card)
         return card
 
-    """ Returns True if the dealer is required to hit (score < 17). """
+    """ Returns the player's hand total. """
+    def player_total(self):
+        return self.hand_total(self.player_hand)
 
-    def dealer_should_hit(self):
-        return self.dealer_total() < 17
-
-    """ Sets the dealer's hidden card to revealed status. """
-
-    def reveal_dealer_card(self):
-        self.dealer_hidden_revealed = True
-
-    """ Returns the dealer's current hand total. """
-
+    """ Returns the dealer's hand total. """
     def dealer_total(self):
         return self.hand_total(self.dealer_hand)
 
-    """ Evaluates the outcome of the round and returns a status key. """
+    """ Reveals the dealer's hidden card. """
+    def reveal_dealer_card(self):
+        self.dealer_hidden_revealed = True
 
+    """ Evaluates the outcome of the round. """
     def decide_winner(self):
         p_score = self.player_total()
         d_score = self.dealer_total()
-
-        if p_score > 21:
-            return "BUST"
+        if p_score > 21: return "BUST"
         if p_score == 21 and len(self.player_hand) == 2:
-            if d_score == 21 and len(self.dealer_hand) == 2:
-                return "PUSH"
+            if d_score == 21 and len(self.dealer_hand) == 2: return "PUSH"
             return "BLACKJACK"
-        if d_score > 21:
-            return "DEALER_BUST"
-        if p_score > d_score:
-            return "WIN"
-        elif p_score < d_score:
-            return "LOSS"
-        else:
-            return "PUSH"
+        if d_score > 21: return "DEALER_BUST"
+        if p_score > d_score: return "WIN"
+        elif p_score < d_score: return "LOSS"
+        else: return "PUSH"
 
     """ 
     Ask the player if they want to do another round (je suppose ça sera des cmdbutton)
