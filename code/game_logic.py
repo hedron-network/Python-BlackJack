@@ -3,52 +3,48 @@ import random
 class Game21:
     def __init__(self):
         # Start immediately with a fresh round
+        self.current_bet = 0
         self.suits = ["♠", "♥", "♦", "♣"]
         self.ranks = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"]
+
         self.new_round()
 
-    # ROUND MANAGEMENT
+    """Round management"""
+
+    """
+    Prepares for a new round
+    """
 
     def new_round(self):
-        """
-        Prepares for a new round
-        Suggested process:
-        - Create and shuffle a new deck
-        - Reset card pointer
-        - Empty both hands
-        - Reset whether the dealer's hidden card has been revealed
-        """
+
         self.deck = self.create_deck()
         random.shuffle(self.deck)
 
-        # Instead of removing cards from the deck,
-        # we keep an index of the "next card" to deal.
+        # Index of the "next card" to deal
         self.deck_position = 0
 
-        # Hands start empty; cards will be dealt after UI calls deal_initial_cards()
+        # Hands start empty
         self.player_hand = []
         self.dealer_hand = []
 
         # The first dealer card starts hidden until Stand is pressed
         self.dealer_hidden_revealed = False
 
+    """
+    Deal two cards each to player and dealer.
+    """
+
     def deal_initial_cards(self):
-        """
-        Deal two cards each to player and dealer.
-        """
+
         self.player_hand = [self.draw_card(), self.draw_card()]
         self.dealer_hand = [self.draw_card(), self.draw_card()]
 
-    # DECK AND CARD DRAWING
+    """
+    Create a standard 52-card deck represented as text strings.
+    """
 
     def create_deck(self):
-        """
-        Create a standard 52-card deck represented as text strings, e.g.:
-        'A♠', '10♥', 'K♦'.
 
-        Ranks: A, 2–10, J, Q, K
-        Suits: spades, hearts, diamonds, clubs (with unicode symbols)
-        """
         ranks = ["A"] + [str(n) for n in range(2, 11)] + ["J", "Q", "K"]
         suits = ["♠", "♥", "♦", "♣"]
         return [f"{rank}{suit}" for rank in ranks for suit in suits]
@@ -57,78 +53,158 @@ class Game21:
         """
         Return the next card in the shuffled deck.
         """
-        card = self.deck[self.deck_position]
-        self.deck_position += 1
-        return card
+        if self.deck_position < len(self.deck):
+            card = self.deck[self.deck_position]
+            self.deck_position += 1
+            return card
+        return None
 
-    # HAND VALUES + ACE HANDLING
+    # --- HAND VALUES + ACE HANDLING ---
 
     def card_value(self, card):
         """
         Convert a card string into its numeric value.
-
-        Rules:
-        - Number cards = their number (2–10)
-        - J, Q, K = 10
-        - A is normally 11, may later count as 1 if needed
         """
-        rank = card[:-1]  # everything except the suit symbol
-
+        rank = card[:-1]
         if rank in ["J", "Q", "K"]:
             return 10
-
         if rank == "A":
-            return 11  # Initially treat Ace as 11
-
-        # Otherwise it's a number from 2 to 10
+            return 11
         return int(rank)
 
+    """
+            Calculates the best possible total for a hand.
+            Aces are counted as 11 unless this would bust the hand.
+    """
+
     def hand_total(self, hand):
-        """
-        Calculates the best possible total for a hand.
-        Aces are counted as 11 unless this would bust the hand,
-        in which case they are reduced to 1.
 
-        Suggested Process:
-        1. Count all Aces as 11 initially.
-        2. If total > 21, subtract 10 for each Ace, so it effectively makes them = 1
-        """
+        total = sum(self.card_value(card) for card in hand)
+        aces = sum(1 for card in hand if card.startswith("A"))
 
-    # PLAYER ACTIONS
+        while total > 21 and aces > 0:
+            total -= 10
+            aces -= 1
+        return total
 
-    def player_hit(self):
-        # TODO: Add one card to the player's hand and return it, so the UI can display the card. Remove pass when complete.
-        pass
+    """
+    Adds a card and checks if the player is allowed to continue.
+    """
+
+    def player_hit(self,deck, player_hand):
+        player_hand.append(deck.pop())
+        score = self.calculate_score(self.player_hand)
+
+        if score > 21:
+            return player_hand, False
+        return player_hand, True
+
+    """Return the player's total."""
 
     def player_total(self):
-        # TODO: Return the player's total. Remove pass when complete.
-        pass
 
-    # DEALER ACTIONS
+        return self.hand_total(self.player_hand)
+
+    """ 
+    Calculates the total value of a hand. 
+    Aces are automatically treated as 11, but converted to 1 if the total exceeds 21 (J'ai check les règles). 
+    """
+
+    def calculate_score(self,hand):
+        score = 0
+        aces = 0
+        for card in hand:
+            if card['rank'] in ['Jack', 'Queen', 'King']:
+                score = score + 10
+            elif card['rank'] == 'Ace':
+                aces += 1
+                score += 11
+            else:
+                score += int(card['rank'])
+
+        while score > 21 and aces > 0:
+            score -= 10
+            aces -= 1
+        return score
+
+    """
+    Dealer actions
+    """
+
+    """Called when the player presses Stand."""
 
     def reveal_dealer_card(self):
-        # TODO: Called when the player presses Stand. After this, the UI should show both dealer cards. Remove pass when complete.
-        pass
+        self.dealer_hidden_revealed = True
 
+    """Return the dealer's total."""
 
     def dealer_total(self):
-        # TODO: Return the dealer's total. Remove pass when complete.
-        pass
+        return self.hand_total(self.dealer_hand)
 
-    def play_dealer_turn(self):
-        # TODO: Dealer must hit until their total is 17 or more, then stand.  Remove pass when complete.
-        pass
+    """Dealer must hit until their total is 17 or more."""
 
-    # WINNER DETERMINATION
+    def dealer_turn(self):
+        while self.dealer_total() < 17:
+            self.dealer_hand.append(self.draw_card())
+
+    """
+           Evaluates player vs dealer hands.
+           Returns a status string for the betting system and a display message.
+    """
 
     def decide_winner(self):
-        # TODO: Decide the outcome of the round.
-        """
-        Example: return the following text messages:
-        - "Player busts. Dealer wins!"
-        - "Dealer busts. Player wins!"
-        - "Player wins!"
-        - "Dealer wins!"
-        - "Push (tie)."
-        """
+        player_score = self.calculate_score(self.player_hand)
+        dealer_score = self.calculate_score(self.dealer_hand)
+
+        if player_score > 21:
+            return "BUST"
+
+        if len(self.player_hand) == 2 and player_score == 21:
+            if len(self.dealer_hand) == 2 and dealer_score == 21:
+                return "PUSH"
+            return "BLACKJACK"
+
+        if dealer_score > 21:
+            return "DEALER_BUST"
+
+        if player_score > dealer_score:
+            return "WIN"
+        elif player_score < dealer_score:
+            return "LOSS"
+        else:
+            return "PUSH"
+    def Bet(self,amount):
+        self.current_bet = amount
+    def resolve_bet(self, result_key):
+        multipliers = {
+            "BUST": 0, "LOSS": 0, "PUSH": 1,
+            "WIN": 2, "DEALER_BUST": 2, "BLACKJACK": 2.5
+        }
+        payout = int(self.current_bet * multipliers.get(result_key, 0))
+        self.current_bet = 0
+        return payout
+
+"""
+betting system
+"""
+
+class BettingSystem:
+    def __init__(self, starting_deposit=1000):
+        self.balance = starting_deposit
+        self.current_bet = 0
+
+    def Bet(self, amount):
+        if amount == "All In":
+            actual_amount = self.balance
+        else:
+            try:
+                actual_amount = int(amount)
+            except ValueError:
+                return False
+
+        if 0 < actual_amount <= self.balance:
+            self.current_bet = actual_amount
+            self.balance -= actual_amount
+            return True
+        return False
 
