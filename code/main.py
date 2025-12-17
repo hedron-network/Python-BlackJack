@@ -1,9 +1,45 @@
-from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel
-from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QPixmap, QPainter
+from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel, QWidget, QVBoxLayout, QHBoxLayout, QPushButton
+from PyQt6.QtCore import Qt, QEasingCurve, QPropertyAnimation, QRect, pyqtProperty
 import sys
 
 # this project should use a modular approach - try to keep UI logic and game logic separate
 from game_logic import Game21
+
+
+class FlippableCard(QLabel):
+    def __init__(self, front: QPixmap, back: QPixmap,parent=None):
+        super().__init__(parent)
+        self.front = front
+        self.back = back
+        self._flip = 0.0
+        self.setFixedSize(front.size())
+
+    @pyqtProperty(float)
+    def flip(self):
+        return self._flip
+
+    @flip.setter
+    def flip(self, value: float):
+        self._flip = value
+        if value <= 0.5:
+            scale = 1.0 - (value * 2)
+            pixmap = self.front
+        else:
+            scale = (value - 0.5) * 2
+            pixmap = self.back
+        new_width = int(pixmap.width() * scale)
+        scaled = pixmap.scaled(new_width, pixmap.height())
+
+        # center offset
+        x_offset = (self.width() - new_width) // 2
+        result = QPixmap(self.size())
+        result.fill(Qt.GlobalColor.transparent)
+        painter = QPainter(result)
+        painter.drawPixmap(x_offset, 0, scaled)
+        painter.end()
+        self.setPixmap(result)
+
 
 class MainWindow(QMainWindow):
 
@@ -12,19 +48,124 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Game of 21")
 
         # set the windows dimensions
-        self.setGeometry(200, 200, 400, 400)
-
+        self.setGeometry(200, 50, 700, 700)
         self.game = Game21()
-
+        self.cards = []
+        self.cardBack = None
+        self.deckAsset = None
+        self.loadAssets()
+        if len(self.cards) == 0 or self.cardBack is None or self.deckAsset is None:
+            print("Error Loading Cards Assets")
         self.initUI()
+
 
     def initUI(self):
         # Create and arrange widgets and layout. Remove pass when complete.
         pass
+
+        #region Container Setup
+        self.mainContainer = QWidget()
+        self.mainContainer.setObjectName("mainContainer")
+        self.mainContainer.setContentsMargins(0, 0, 0, 0)
+        self.setCentralWidget(self.mainContainer)
+
+        self.activeAnimations = []
+        self.animationOverlayContainer = QWidget(self.mainContainer) # makes an overlay widget
+        self.animationOverlayContainer.setContentsMargins(0, 0, 0, 0)
+        self.animationOverlayContainer.setObjectName("animationOverlayContainer")
+        self.animationOverlayContainer.setAttribute(
+            Qt.WidgetAttribute.WA_TransparentForMouseEvents
+        )
+
+        mainVerticalLayout = QVBoxLayout(self.mainContainer)
+        mainVerticalLayout.setContentsMargins(0,0,0,0)
+        mainVerticalLayout.setSpacing(0)
+        self.topContainer = QWidget()
+        self.topContainer.setObjectName("topContainer")
+        self.bottomContainer = QWidget()
+        self.bottomContainer.setObjectName("bottomContainer")
+        upperHorizontalLayout = QHBoxLayout()
+        upperHorizontalLayout.setContentsMargins(0,0,0,0)
+        upperHorizontalLayout.setSpacing(0)
+        lowerHorizontalLayout = QHBoxLayout()
+        lowerHorizontalLayout.setContentsMargins(0,0,0,0)
+        lowerHorizontalLayout.setSpacing(0)
+        self.mainContainer.setLayout(mainVerticalLayout)
+        self.topContainer.setLayout(upperHorizontalLayout)
+        self.bottomContainer.setLayout(lowerHorizontalLayout)
+        mainVerticalLayout.addWidget(self.topContainer,1)
+        mainVerticalLayout.addWidget(self.bottomContainer,1)
+
+        self.topLeftContainer = QWidget()
+        self.topLeftContainer.setObjectName("topLeftContainer")
+        self.topRightContainer = QWidget()
+        self.topRightContainer.setObjectName("topRightContainer")
+        self.bottomLeftContainer = QWidget()
+        self.bottomLeftContainer.setObjectName("bottomLeftContainer")
+        self.bottomRightContainer = QWidget()
+        self.bottomRightContainer.setObjectName("bottomRightContainer")
+
+        upperHorizontalLayout.addWidget(self.topLeftContainer,1)
+        upperHorizontalLayout.addWidget(self.topRightContainer,1)
+        lowerHorizontalLayout.addWidget(self.bottomLeftContainer,1)
+        lowerHorizontalLayout.addWidget(self.bottomRightContainer,1)
+         #endregion
+
+        #region Deck
+        self.topRightContainerLayout = QVBoxLayout()
+        self.topRightContainerLayout.setContentsMargins(0,0,0,0)
+        self.topRightContainer.setLayout(self.topRightContainerLayout)
+        self.deckLabel = QLabel()
+        self.deckLabel.setObjectName("deck")
+        self.topRightContainerLayout.addWidget(
+            self.deckLabel,
+            0,
+            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignTop
+
+        )
+        self.deckLabel.setPixmap(self.deckAsset)
+
+        self.cardToDrawStartingGeometry = QRect(self.width() - (88 + 10), 0 + 10, 88, 124)
+        self.cardToDraw = QLabel(self.animationOverlayContainer)
+        self.cardToDraw.setPixmap(self.cardBack)
+        self.cardToDraw.setFixedSize(88, 124)
+        self.cardToDraw.setGeometry(self.DrawCardStartGeometry())
+        #endregion
+
+        self.bottomRightContainerLayout = QVBoxLayout()
+        self.bottomRightContainer.setLayout(self.bottomRightContainerLayout)
+        self.drawButton = QPushButton("Draw")
+        self.bottomRightContainerLayout.addWidget(self.drawButton)
+
+        self.playerCardsContainer = QWidget(self.bottomContainer)
+        self.playerCardsContainer.setAttribute(
+            Qt.WidgetAttribute.WA_TransparentForMouseEvents
+        )
+        self.playerCardsContainer.setObjectName("cardsContainer")
+        self.playerCardsLayout = QHBoxLayout()
+        self.playerCardsContainer.setLayout(self.playerCardsLayout)
+        self.playerCardsLayout.setSpacing(5)
+        self.playerCardsLayout.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignCenter)
+
+        self.drawButton.clicked.connect(lambda : self.StartRound())
+        self.playerCardsContainer.setGeometry(self.bottomContainer.contentsRect())
+
+
+        self.dealerCardsContainer = QWidget(self.topContainer)
+        self.dealerCardsContainer.setAttribute(
+            Qt.WidgetAttribute.WA_TransparentForMouseEvents
+        )
+        self.dealerCardsContainer.setObjectName("cardsContainer")
+        self.dealerCardsLayout = QHBoxLayout()
+        self.dealerCardsContainer.setLayout(self.dealerCardsLayout)
+        self.dealerCardsLayout.addSpacing(5)
+        self.dealerCardsLayout.setAlignment(Qt.AlignmentFlag.AlignBottom | Qt.AlignmentFlag.AlignCenter)
+        self.dealerCardsContainer.setGeometry(self.topContainer.contentsRect())
+
         # TODO: Dealer Section with cards
-
+        self.dealerCards =0
         # TODO: Player Section with cards
-
+        self.playerCards = 0
         #  TODO: Buttons for hit, stand, new round
 
         #  TODO: Feedback
@@ -33,8 +174,123 @@ class MainWindow(QMainWindow):
 
         #  TODO: Trigger a new layout with a new round
 
+        self.animationOverlayContainer.raise_()
 
+    def loadAssets(self):
+        for suit in self.game.suits:
+            for rank in self.game.ranks:
+                pixmap = QPixmap("./assets/cards/fronts/" + rank + suit + "_card.png").scaled(88,124)
+                self.cards.append(pixmap)
+        self.cardBack = QPixmap("./assets/cards/backs/Flat/Card_Back.png")
+        self.deckAsset = QPixmap("./assets/cards/backs/Flat/Card_DeckA-88x140.png").scaled(88, 140)
+    """fix for self.bottomContainer.contentsRect() returning incorrect values"""
+    def showEvent(self, event):
+        super().showEvent(event)
+        self.playerCardsContainer.setGeometry(
+            self.bottomContainer.contentsRect()
+        )
+        self.dealerCardsContainer.setGeometry(self.topContainer.contentsRect())
+
+    """Resize overlays"""
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        if hasattr(self, 'animationOverlayContainer'):
+            self.animationOverlayContainer.setGeometry(self.mainContainer.rect())
+        if hasattr(self, 'cardToDraw'):
+            self.cardToDraw.setGeometry(self.DrawCardStartGeometry())
+        if hasattr(self, 'playerCardsContainer'):
+            self.playerCardsContainer.setGeometry(self.bottomContainer.contentsRect())
+        if hasattr(self, 'dealerCardsContainer'):
+            self.dealerCardsContainer.setGeometry(self.topContainer.contentsRect())
     # BUTTON ACTIONS
+
+    def StartRound(self):
+        #self.game.new_round()
+        self.playerCards = 0
+        self.dealerCards=0
+        self.clear_layout(self.playerCardsLayout)
+        self.game.player_hand = ["A♠", "A♥"]
+        self.game.dealer_hand = ["A♦", "A♣"]
+        for card in self.game.player_hand:
+            self.CardDrawAnimation(card, True, True)
+        self.update_dealer_cards()
+    def CardDrawAnimation(self,cardToDraw, isPlayerDrawing, reveal=True):
+        animatedCard = QLabel(self.animationOverlayContainer)
+        animatedCard.setPixmap(self.cardBack)
+        animatedCard.setGeometry(self.DrawCardStartGeometry())
+        animatedCard.show()
+        startPosition = animatedCard.geometry()
+
+        cardDrawAnimation = QPropertyAnimation(animatedCard, b"geometry")
+        cardDrawAnimation.setStartValue(startPosition)
+        if isPlayerDrawing:
+            cardsInHand = self.playerCards
+            self.playerCards+=1
+            endPosition = QRect(
+                int(self.width() // 2 - animatedCard.width() // 2* cardsInHand + (animatedCard.width() + 3) * cardsInHand),
+                self.playerCardsContainer.geometry().y()+9 + self.bottomContainer.pos().y(),
+                animatedCard.width(),
+                animatedCard.height())
+            cardDrawAnimation.setEndValue(endPosition)
+        else:
+            cardsInHand = self.dealerCards
+            self.dealerCards+=1
+            endPosition = QRect(
+                int(self.width() // 2 - animatedCard.width() // 2 * cardsInHand + (
+                            animatedCard.width() + 3) * cardsInHand),
+                int(self.dealerCardsContainer.geometry().y()+ self.dealerCardsContainer.height()-(124+5)),
+                animatedCard.width(),
+                animatedCard.height())
+            cardDrawAnimation.setEndValue(endPosition)
+
+        cardDrawAnimation.setDuration(1000)
+        cardDrawAnimation.setEasingCurve(QEasingCurve.Type.InOutExpo)
+        cardDrawAnimation.finished.connect(lambda : self.ResetDeck(cardDrawAnimation,isPlayerDrawing,cardToDraw,endPosition,animatedCard,reveal) )
+        self.activeAnimations.append(cardDrawAnimation)
+        cardDrawAnimation.start()
+
+    def CardRevealAnimation(self, layout,card, positionGeometry):
+        TempCard = FlippableCard(self.cardBack, self.CardToPixmap(card),self.animationOverlayContainer)
+        TempCard.setGeometry(positionGeometry)
+        TempCard.show()
+        FlipAnimation = QPropertyAnimation(TempCard, b"flip")
+        FlipAnimation.setDuration(500)
+        FlipAnimation.setStartValue(0.0)
+        FlipAnimation.setEndValue(1.0)
+        FlipAnimation.finished.connect(lambda : self.onAnimationFinished(FlipAnimation,layout,card,TempCard))
+        self.activeAnimations.append(FlipAnimation)
+        FlipAnimation.start()
+
+    def onAnimationFinished(self,animation,layout,card,TempCard):
+        animation.deleteLater()
+        self.activeAnimations.remove(animation)
+        self.add_card(layout, card)
+        TempCard.deleteLater()
+
+    def DrawCardStartGeometry(self):
+        return QRect(self.width()-(88+10),0+10,88,124)
+    def ResetDeck(self,animation,IsPlayerDrawing,card, endGeometry,animatedCard, reveal):
+        animation.deleteLater()
+        self.activeAnimations.remove(animation)
+        animatedCard.deleteLater()
+        if IsPlayerDrawing:
+            layout = self.playerCardsLayout
+        else:
+            layout = self.dealerCardsLayout
+        if reveal:
+            self.CardRevealAnimation(layout, card,endGeometry )
+        else:
+            self.add_card(layout,card)
+
+    def CardToPixmap(self, card):
+        if card =="??":
+            return self.cardBack
+        suit = card[-1]
+        rank = card[:-1]
+        suitIndex = self.game.suits.index(suit)
+        rankIndex = self.game.ranks.index(rank)
+        cardIndex = 14* suitIndex + rankIndex
+        return self.cards[cardIndex]
 
     def on_hit(self):
         # Player takes a card
@@ -46,7 +302,7 @@ class MainWindow(QMainWindow):
           pass
 
     def on_stand(self):
-        # TODO: Player ends turn; dealer reveals their hidden card and plays. Remove pass when complete
+        self.game.player_stand()
         pass
 
     def on_new_round(self):
@@ -63,11 +319,12 @@ class MainWindow(QMainWindow):
             if widget:
                 widget.deleteLater()
 
-    def add_card(self, layout, card_text):
-        # Create a QLabel showing the card value and add it to the chosen layout.
-        label = QLabel(card_text)
-        layout.addWidget(label)
-        label.setProperty("card", True)
+    def add_card(self,layout, card):
+        NewCardLabel = QLabel(self.animationOverlayContainer)
+        NewCardLabel.setPixmap(self.CardToPixmap(card))
+        NewCardLabel.setFixedSize(88,124)
+        layout.addWidget(NewCardLabel)
+        NewCardLabel.show()
 
     def update_dealer_cards(self, full=False):
         # Show dealer cards; hide the first card until revealed
@@ -75,9 +332,9 @@ class MainWindow(QMainWindow):
 
         for i, card in enumerate(self.game.dealer_hand):
             if i == 0 and not full:
-                self.add_card(self.dealerCardsLayout, "??")   # face-down
+                self.CardDrawAnimation("??",False,False)   # face-down
             else:
-                self.add_card(self.dealerCardsLayout, card)
+                self.CardDrawAnimation(card, False,True)
 
         # TODO: update relevant labels in response to dealer actions. Remove pass when complete
         if full:
@@ -101,6 +358,7 @@ class MainWindow(QMainWindow):
         pass
 
 
+
 # complete
 
 if __name__ == '__main__':
@@ -108,7 +366,8 @@ if __name__ == '__main__':
 
     # macOS only fix for icons appearing
     app.setAttribute(Qt.ApplicationAttribute.AA_DontShowIconsInMenus, False)
-
+    with open("QSS_Blackjack.qss", "r") as f:
+        app.setStyleSheet(f.read())
     window = MainWindow()
     window.show()
     sys.exit(app.exec())

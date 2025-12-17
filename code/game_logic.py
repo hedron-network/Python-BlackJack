@@ -1,13 +1,18 @@
 import random
+from typing import List
 
 class Game21:
-    def __init__(self):
+    def __init__(self) -> None:
         # Start immediately with a fresh round
+        self.suits = ["♠", "♥", "♦", "♣"]
+        self.ranks = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"]
+        self.deck = self.create_deck()
+
         self.new_round()
 
     # ROUND MANAGEMENT
 
-    def new_round(self):
+    def new_round(self) -> None:
         """
         Prepares for a new round
         Suggested process:
@@ -16,7 +21,6 @@ class Game21:
         - Empty both hands
         - Reset whether the dealer's hidden card has been revealed
         """
-        self.deck = self.create_deck()
         random.shuffle(self.deck)
 
         # Instead of removing cards from the deck,
@@ -30,7 +34,7 @@ class Game21:
         # The first dealer card starts hidden until Stand is pressed
         self.dealer_hidden_revealed = False
 
-    def deal_initial_cards(self):
+    def deal_initial_cards(self) -> None:
         """
         Deal two cards each to player and dealer.
         """
@@ -39,7 +43,7 @@ class Game21:
 
     # DECK AND CARD DRAWING
 
-    def create_deck(self):
+    def create_deck(self) -> List[str]:
         """
         Create a standard 52-card deck represented as text strings, e.g.:
         'A♠', '10♥', 'K♦'.
@@ -47,11 +51,9 @@ class Game21:
         Ranks: A, 2–10, J, Q, K
         Suits: spades, hearts, diamonds, clubs (with unicode symbols)
         """
-        ranks = ["A"] + [str(n) for n in range(2, 11)] + ["J", "Q", "K"]
-        suits = ["♠", "♥", "♦", "♣"]
-        return [f"{rank}{suit}" for rank in ranks for suit in suits]
+        return [f"{rank}{suit}" for rank in self.ranks for suit in self.suits]
 
-    def draw_card(self):
+    def draw_card(self) -> str:
         """
         Return the next card in the shuffled deck.
         """
@@ -61,7 +63,7 @@ class Game21:
 
     # HAND VALUES + ACE HANDLING
 
-    def card_value(self, card):
+    def card_value(self, card: str) -> int:
         """
         Convert a card string into its numeric value.
 
@@ -81,7 +83,7 @@ class Game21:
         # Otherwise it's a number from 2 to 10
         return int(rank)
 
-    def hand_total(self, hand):
+    def hand_total(self, hand: List[str]) -> int:
         """
         Calculates the best possible total for a hand.
         Aces are counted as 11 unless this would bust the hand,
@@ -91,6 +93,18 @@ class Game21:
         1. Count all Aces as 11 initially.
         2. If total > 21, subtract 10 for each Ace, so it effectively makes them = 1
         """
+        hand_value = 0
+        aces_count = 0
+        for card in hand:
+            if card[:-1] == "A":
+                aces_count += 1
+            hand_value += self.card_value(card)
+
+        while hand_value > 21 and aces_count > 0:
+            hand_value -= 10
+            aces_count -= 1
+
+        return hand_value
 
     # PLAYER ACTIONS
 
