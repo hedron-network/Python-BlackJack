@@ -9,9 +9,7 @@ import sys
 
 # this project should use a modular approach - try to keep UI logic and game logic separate
 from game_logic import Game21
-from custom_widgets import AudioPlayer,FlippableCard, QLabel_clickable, Settings
-
-
+from custom_widgets import AudioPlayer, FlippableCard, QLabel_clickable, Settings, Help
 
 
 class MainWindow(QMainWindow):
@@ -38,6 +36,8 @@ class MainWindow(QMainWindow):
         self.game = Game21()
         self.settingsIcon = None
         self.settingsDialog= None
+        self.helpIcon = None
+        self.helpDialog = None
         self.soundButtonStates=[]
         self.chips = []
         self.isometricChips = []
@@ -216,14 +216,21 @@ class MainWindow(QMainWindow):
         #endregion
 
         #region Settings Button
-        self.topLeftContainerLayout = QHBoxLayout()
+        self.topLeftContainerLayout = QVBoxLayout()
         self.topLeftContainer.setLayout(self.topLeftContainerLayout)
-        self.SettingsLayout= QVBoxLayout()
+        self.SettingsLayout= QHBoxLayout()
         self.SettingsButton = QLabel_clickable()
         self.SettingsButton.setObjectName("settingsButton")
         self.SettingsButton.setPixmap(self.settingsIcon)
         self.SettingsButton.clicked.connect(lambda : self.OpenSettings())
         self.SettingsLayout.addWidget(self.SettingsButton)
+        self.HelpButton = QLabel_clickable()
+        self.HelpButton.setObjectName("helpButton")
+        self.HelpButton.setPixmap(self.helpIcon)
+        self.HelpButton.clicked.connect(lambda :self.OpenHelp())
+        self.SettingsLayout.addWidget(self.HelpButton)
+
+
         self.SettingsLayout.addStretch()
         self.topLeftContainerLayout.addLayout(self.SettingsLayout)
         self.topLeftContainerLayout.addStretch()
@@ -238,6 +245,12 @@ class MainWindow(QMainWindow):
         self.playedChips= []
         for i in range(0,len(self.chips)):
             self.playedChips.append([])
+
+        self.removeChipsButton = QPushButton("Remove Chips")
+        self.removeChipsButton.clicked.connect(lambda :self.removeChips())
+        self.removeChipsButton.setMaximumWidth(200)
+        self.removeChipsButton.hide()
+        self.bottomLeftContainerLayout.addWidget(self.removeChipsButton)
         #endregion
 
         #region Cards Containers
@@ -340,7 +353,8 @@ class MainWindow(QMainWindow):
         ]
         self.settingsIcon = QPixmap("./assets/UI elements/settings.png")
         self.settingsDialog = Settings(self.settingsIcon,self.audioPlayer,self.soundEffectPlayer,trackNames,self.mainContainer)
-
+        self.helpIcon = QPixmap("./assets/UI elements/info.png")
+        self.helpDialog = Help(self.helpIcon,self.mainContainer)
 
     """
     fix for contentsRect() returning incorrect values
@@ -704,6 +718,8 @@ class MainWindow(QMainWindow):
             QTimer.singleShot(50, lambda :self.StaggeredChips(chips))
 
     def Bet(self, t):
+        if not self.removeChipsButton.isVisible():
+            self.removeChipsButton.show()
         if t> self.playerMoney or self.playerMoney ==0 or not self.canBet:
             self.soundEffectPlayer.stop()
             self.soundEffectPlayer.playAt(4)
@@ -758,9 +774,29 @@ class MainWindow(QMainWindow):
             self.game.Bet(self.betAmount)
             self.canBet=False
             self.DrawInitialCards()
+            self.removeChipsButton.hide()
         else:
             self.soundEffectPlayer.stop()
             self.soundEffectPlayer.playAt(4)
+
+    def OpenHelp(self):
+        self.helpDialog.exec()
+
+    def removeChips(self):
+        if not self.canBet:
+            return
+        self.canBet= False
+        for i in range(0,len(self.playedChips)):
+            for chip in self.playedChips[i]:
+                chip.deleteLater()
+                self.playerMoney+=self.chipsValue[i]
+            self.playedChips[i] = []
+        self.CurrentMoneyLabel.setText(str(self.playerMoney))
+        self.betAmount=0
+        self.CurrentBetLabel.setText(str(self.betAmount))
+        self.removeChipsButton.hide()
+        self.canBet=True
+
 
 
 # complete
