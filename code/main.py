@@ -754,7 +754,7 @@ class MainWindow(QMainWindow):
 
     #endregion
     def confirmBet(self):
-        if self.canBet and self.canActivateButtons:
+        if self.canBet and self.canActivateButtons and self.betAmount >=0:
             self.game.Bet(self.betAmount)
             self.canBet=False
             self.DrawInitialCards()
