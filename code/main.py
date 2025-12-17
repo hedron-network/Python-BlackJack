@@ -718,12 +718,12 @@ class MainWindow(QMainWindow):
             QTimer.singleShot(50, lambda :self.StaggeredChips(chips))
 
     def Bet(self, t):
-        if not self.removeChipsButton.isVisible():
-            self.removeChipsButton.show()
         if t> self.playerMoney or self.playerMoney ==0 or not self.canBet:
             self.soundEffectPlayer.stop()
             self.soundEffectPlayer.playAt(4)
             return
+        if not self.removeChipsButton.isVisible():
+            self.removeChipsButton.show()
         if t==-1 and self.playerMoney>0:
             if not self.muted:
                 self.soundEffectPlayer.stop()
