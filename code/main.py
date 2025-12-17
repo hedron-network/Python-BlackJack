@@ -710,6 +710,7 @@ class MainWindow(QMainWindow):
             return
         if t==-1 and self.playerMoney>0:
             if not self.muted:
+                self.soundEffectPlayer.stop()
                 self.soundEffectPlayer.playAt(3)
             betAmount = self.playerMoney
             self.AllIn(betAmount)
@@ -719,6 +720,7 @@ class MainWindow(QMainWindow):
                 self.soundEffectPlayer.playAt(4)
                 return
             if not self.muted and self.playerMoney>=t:
+                self.soundEffectPlayer.stop()
                 self.soundEffectPlayer.playAt(2)
             betAmount = self.chipsValue[t]
             self.PlayChip(t)
@@ -756,6 +758,9 @@ class MainWindow(QMainWindow):
             self.game.Bet(self.betAmount)
             self.canBet=False
             self.DrawInitialCards()
+        else:
+            self.soundEffectPlayer.stop()
+            self.soundEffectPlayer.playAt(4)
 
 
 # complete
