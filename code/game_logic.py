@@ -9,64 +9,36 @@ class Game21:
 
         self.new_round()
 
-    """Round management"""
-
-    """
-    Prepares for a new round
-    """
-
+        """ Prepares for a new round. """
     def new_round(self):
-
         self.deck = self.create_deck()
         random.shuffle(self.deck)
-        print("New round started")
-
-        # Index of the "next card" to deal
-        self.deck_position = 0
-
-        # Hands start empty
         self.player_hand = []
         self.dealer_hand = []
-
-        # The first dealer card starts hidden until Stand is pressed
         self.dealer_hidden_revealed = False
         self.deal_initial_cards()
 
-    """
-    Deal two cards each to player and dealer.
-    """
-
+    """ Deals two cards to both player and dealer. """
     def deal_initial_cards(self):
+        self.player_draw()
+        self.player_draw()
+        self.dealer_draw()
+        self.dealer_draw()
 
-        self.player_hand = [self.draw_card(), self.draw_card()]
-        self.dealer_hand = [self.draw_card(), self.draw_card()]
-
-    """
-    Create a standard 52-card deck represented as text strings.
-    """
-
+    """ Creates a standard 52-card deck. """
     def create_deck(self):
-
         ranks = ["A"] + [str(n) for n in range(2, 11)] + ["J", "Q", "K"]
         suits = ["♠", "♥", "♦", "♣"]
         return [f"{rank}{suit}" for rank in ranks for suit in suits]
 
+    """ Removes and returns the top card from the deck. """
     def draw_card(self):
-        """
-        Return the next card in the shuffled deck.
-        """
-        if self.deck_position < len(self.deck):
-            card = self.deck[self.deck_position]
-            self.deck_position += 1
-            return card
+        if len(self.deck) > 0:
+            return self.deck.pop()
         return None
 
-    # --- HAND VALUES + ACE HANDLING ---
-
+    """ Converts a card string into its numeric value. """
     def card_value(self, card):
-        """
-        Convert a card string into its numeric value.
-        """
         rank = card[:-1]
         if rank in ["J", "Q", "K"]:
             return 10
@@ -74,105 +46,62 @@ class Game21:
             return 11
         return int(rank)
 
-    """
-            Calculates the best possible total for a hand.
-            Aces are counted as 11 unless this would bust the hand.
-    """
-
+    """ Calculates the total score of a hand, handling Aces. """
     def hand_total(self, hand):
-
         total = sum(self.card_value(card) for card in hand)
         aces = sum(1 for card in hand if card.startswith("A"))
-
         while total > 21 and aces > 0:
             total -= 10
             aces -= 1
         return total
 
-    """
-    Adds a card and checks if the player is allowed to continue.
-    """
+    """ Returns True if the dealer must draw a card (score < 17). """
+    def dealer_turn(self):
+        return self.hand_total(self.dealer_hand) < 17
 
-    def player_hit(self):
-        self.player_hand.append(self.deck.pop(0))
-        score = self.calculate_score(self.player_hand)
-        return score
+    """ Draws a card for the player and returns it. """
+    def player_draw(self):
+        card = self.draw_card()
+        if card:
+            self.player_hand.append(card)
+        return card
 
-    """Return the player's total."""
+    """ Draws a card for the dealer and returns it. """
+    def dealer_draw(self):
+        card = self.draw_card()
+        if card:
+            self.dealer_hand.append(card)
+        return card
 
+    """ Returns the player's hand total. """
     def player_total(self):
         return self.hand_total(self.player_hand)
 
-    """ 
-    Calculates the total value of a hand. 
-    Aces are automatically treated as 11, but converted to 1 if the total exceeds 21 (J'ai check les règles). 
-    """
-
-    def calculate_score(self,hand):
-        score = 0
-        aces = 0
-        for card in hand:
-            if card['rank'] in ['Jack', 'Queen', 'King']:
-                score = score + 10
-            elif card['rank'] == 'Ace':
-                aces += 1
-                score += 11
-            else:
-                score += int(card['rank'])
-
-        while score > 21 and aces > 0:
-            score -= 10
-            aces -= 1
-        return score
-
-    """
-    Dealer actions
-    """
-
-    """Called when the player presses Stand."""
-
-    def reveal_dealer_card(self):
-        self.dealer_hidden_revealed = True
-
-    """Return the dealer's total."""
-
+    """ Returns the dealer's hand total. """
     def dealer_total(self):
         return self.hand_total(self.dealer_hand)
 
-    """Dealer must hit until their total is 17 or more."""
 
-    def dealer_turn(self):
-        while self.dealer_total() < 17:
-            self.dealer_hand.append(self.draw_card())
-
-    """
-           Evaluates player vs dealer hands.
-           Returns a status string for the betting system and a display message.
-    """
-
+    """ Evaluates the outcome of the round. """
     def decide_winner(self):
-        player_score = self.calculate_score(self.player_hand)
-        dealer_score = self.calculate_score(self.dealer_hand)
-
-        if player_score > 21:
-            return "BUST"
-
-        if len(self.player_hand) == 2 and player_score == 21:
-            if len(self.dealer_hand) == 2 and dealer_score == 21:
-                return "PUSH"
+        p_score = self.player_total()
+        d_score = self.dealer_total()
+        if p_score > 21: return "BUST"
+        if p_score == 21 and len(self.player_hand) == 2:
+            if d_score == 21 and len(self.dealer_hand) == 2: return "PUSH"
             return "BLACKJACK"
+        if d_score > 21: return "DEALER_BUST"
+        if p_score > d_score: return "WIN"
+        elif p_score < d_score: return "LOSS"
+        else: return "PUSH"
 
-        if dealer_score > 21:
-            return "DEALER_BUST"
 
-        if player_score > dealer_score:
-            return "WIN"
-        elif player_score < dealer_score:
-            return "LOSS"
-        else:
-            return "PUSH"
-    def Bet(self,amount):
+    def Bet(self, amount):
         self.current_bet = amount
+
+
+    """ Updates balance based on result multipliers and returns payout. """
+
     def resolve_bet(self, result_key):
         multipliers = {
             "BUST": 0, "LOSS": 0, "PUSH": 1,
@@ -181,28 +110,3 @@ class Game21:
         payout = int(self.current_bet * multipliers.get(result_key, 0))
         self.current_bet = 0
         return payout
-
-"""
-betting system
-"""
-
-class BettingSystem:
-    def __init__(self, starting_deposit=1000):
-        self.balance = starting_deposit
-        self.current_bet = 0
-
-    def Bet(self, amount):
-        if amount == "All In":
-            actual_amount = self.balance
-        else:
-            try:
-                actual_amount = int(amount)
-            except ValueError:
-                return False
-
-        if 0 < actual_amount <= self.balance:
-            self.current_bet = actual_amount
-            self.balance -= actual_amount
-            return True
-        return False
-

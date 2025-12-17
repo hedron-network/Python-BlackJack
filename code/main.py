@@ -570,8 +570,9 @@ class MainWindow(QMainWindow):
         self.game.Bet(self.betAmount)
         # Player takes a card
         card = self.game.draw_card()
-        score = self.game.player_hit()
-        self.playerTotalLabel.setText("Total : "+ str(0))
+        self.game.player_hand.append(card)
+        score = self.game.player_total()
+        self.playerTotalLabel.setText("Total : "+ str(score))
         self.CardDrawAnimation(card, True)
 
         if self.game.player_total() > 21:
