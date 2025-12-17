@@ -11,6 +11,24 @@ QLabel{
 }
 QLabel#SettingsLabel{
     color: #000;
+    font: arial;
+}
+QLabel#RulesLabelTitle{
+    color: black;
+    font: arial;
+    font-size: 20px;
+}
+QLabel#ControlsLabelTitle{
+    color: black;
+    font: arial;
+    font-size: 20px;
+}
+QLabel#ControlsLabel{
+    color: #000;
+    font: arial;
+}
+QLabel#RulesLabel{
+    color: #000;
 }
 QLabel#overlayLabel{
     color: #000;

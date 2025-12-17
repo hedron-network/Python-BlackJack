@@ -8,6 +8,45 @@ class QLabel_clickable(QLabel):
     clicked=pyqtSignal()
     def mousePressEvent(self, event):
         self.clicked.emit()
+class Help(QDialog):
+    def __init__(self,icon, parent=None):
+        super().__init__(parent)
+        self.setGeometry(parent.width() // 2 +100 , parent.pos().y()+100, 400, 600)
+        self.setWindowIcon(QIcon(icon))
+        self.setWindowTitle("Help")
+        self.mainLayout = QVBoxLayout()
+        self.setLayout(self.mainLayout)
+        self.RulesLabelTitle = QLabel("Game Rules")
+        self.RulesLabelTitle.setObjectName("RulesLabelTitle")
+        self.RulesLabel = QLabel(self)
+        self.RulesLabel.setText("Objective: Get a hand value as close to 21 as possible without going over\nCard Values:\n   Number cards (2-10): Face value\n   Face cards (J, Q, K): 10 points\n   Ace: 1 or 11 (whichever benefits the hand)\nGameplay:\n   Player and dealer each receive 2 cards\n   Player can Hit (draw card) or Stand (end turn)\n   Dealer reveals hidden card and hits until 17+\nWinning: Highest hand ≤21 wins; ties are a push")
+        self.RulesLabel.setObjectName("RulesLabel")
+        self.RulesLabel.setWordWrap(True)
+        self.mainLayout.addWidget(self.RulesLabelTitle)
+        self.mainLayout.addWidget(self.RulesLabel)
+        self.ControlsLabelTitle = QLabel("Controls:")
+        self.ControlsLabelTitle.setObjectName("ControlsLabelTitle")
+        self.ControlsLabel = QLabel(self)
+        self.ControlsLabel.setObjectName("ControlsLabel")
+        self.ControlsLabel.setText(
+            """Settings:
+                -You can lower music/sound effects volume in the settings panel (top left of the screen)
+                -You can mute the game by clicking on the speaker icon in the bottom right of the screen
+            Game Controls:
+            Bets: 
+                - Click on the chips you want to bet or Click the all in button to automatically go all-in
+                - Once you have bet at least 5$ click confirm bet to start the round
+            Hitting:
+                - To hit use the hit button
+            Standing
+                - To stand use the stand button
+            """
+        )
+        self.ControlsLabel.setWordWrap(True)
+        self.mainLayout.addWidget(self.ControlsLabelTitle)
+        self.mainLayout.addWidget(self.ControlsLabel)
+
+        self.mainLayout.addStretch()
 class Settings(QDialog):
     def __init__(self,icon,audioPlayer,SoundPlayer,tracks, parent=None):
         super().__init__(parent)
