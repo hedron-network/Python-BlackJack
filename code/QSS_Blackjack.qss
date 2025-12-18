@@ -5,7 +5,19 @@ QLabel#background{
     background-origin: content;
     background-clip: content;
 }
+QPushButton{
+    background-image: url("./assets/UI elements/wood-background.jpg");
+    background-position: center;
+    background-clip: border-box;
+    color : aliceblue;
 
+    padding: 10;
+    border: 2px solid gold;
+    border-radius: 15;
+}
+
+QDialog{
+}
 QLabel{
     color: aliceblue;
 }
