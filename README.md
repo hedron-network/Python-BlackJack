@@ -16,31 +16,31 @@ The final goal of the application is to provide an intuitive and professional lo
 
 ### Phase 1: Core Game Logic
 - [x] **Deck Mechanics** - Create and shuffle a standard 52-card deck
-- [ ] **Card Distribution** - Deal 2 cards to player (face up) and dealer (1 up, 1 down)
-- [ ] **Scoring System** - Calculate hand values correctly
-- [ ] **Ace Handling** - Implement dynamic Ace value (1 or 11) based on hand optimization
-- [ ] **Dealer Functionality** - Dealer hits on < 17, stands on ≥ 17
-- [ ] **Win Condition Logic** - Determine winner, handle push (tie), detect bust
+- [x] **Card Distribution** - Deal 2 cards to player (face up) and dealer (1 up, 1 down)
+- [x] **Scoring System** - Calculate hand values correctly
+- [x] **Ace Handling** - Implement dynamic Ace value (1 or 11) based on hand optimization
+- [x] **Dealer Functionality** - Dealer hits on < 17, stands on ≥ 17
+- [x] **Win Condition Logic** - Determine winner, handle push (tie), detect bust
 
 ### Phase 2: Required UI Features
 - [x] **Responsive Window Design** - Layout reflows sensibly when resized
 - [x] **Player Hand Display** - Show cards and current total clearly
 - [x] **Dealer Hand Display** - Show cards with face-down card until reveal, display total
 - [x] **Control Buttons** - Hit, Stand, and New Round buttons
-- [ ] **Scoreboard** - Display player and dealer hand totals prominently
+- [x] **Scoreboard** - Display player and dealer hand totals prominently
 - [ ] **Visual Feedback** - Clear win/lose/push indication at round end
 - [x] **Card Images** - Use graphical card images 
 
 ### Phase 3: Design & Accessibility
 - [x] **External Stylesheet** - Separate QSS file for styling
 - [x] **Images & Icons** - Integrate card images and UI icons
-- [ ] **Accessibility Features** - Large fonts, high contrast, clear labeling
+- [x] **Accessibility Features** - Large fonts, high contrast, clear labeling
 - [ ] **Turn Indicator** - Clear display of whose turn it is
 
 ### Phase 4: Additional Feature
 
 **Options Under Consideration:**
-- [ ] **Statistics Tracker** - Track wins/losses/pushes across sessions
+- [x] **Statistics Tracker** - Track wins/losses/pushes across sessions
 - [ ] **Theme Switcher** - Light/Dark mode toggle
 - [ ] **Best of 3 Mode** - Multi-round gameplay with series winner
 - [x] **Settings Panel** - Adjust font size, contrast, animation speed
@@ -49,7 +49,6 @@ The final goal of the application is to provide an intuitive and professional lo
 - [x] **Card Draw Animation** - Smooth card dealing animation
 - [x] **Card Flip Animation** - Reveal dealer's face-down card with flip effect
 - [x] **Chip Animations** - Chips animation for betting feedback
-- [ ] **Dealer Idle Animation** - Optional idle animation for dealer character
 - [ ] **Smooth Transitions** - Polish all state changes with subtle animations
 
 ### Phase 6: Documentation
