@@ -1,15 +1,16 @@
 import time
+from pstats import Stats
 
 from PyQt6.QtGui import QPixmap, QPainter, QIcon
 from PyQt6.QtMultimedia import QMediaPlayer
-from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, \
+from PyQt6.QtWidgets import QApplication,QMessageBox, QMainWindow, QLabel, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, \
     QGridLayout, QDialog, QSlider
 from PyQt6.QtCore import Qt, QEasingCurve, QPropertyAnimation, QRect, pyqtProperty, QTimer
 import sys
 
 # this project should use a modular approach - try to keep UI logic and game logic separate
 from game_logic import Game21
-from custom_widgets import AudioPlayer, FlippableCard, QLabel_clickable, Settings, Help
+from custom_widgets import AudioPlayer, FlippableCard, QLabel_clickable, Settings, Help,Statistic
 
 
 class MainWindow(QMainWindow):
@@ -38,6 +39,8 @@ class MainWindow(QMainWindow):
         self.settingsDialog= None
         self.helpIcon = None
         self.helpDialog = None
+        self.statsIcon = None
+        self.statsDialog = None
         self.soundButtonStates=[]
         self.chips = []
         self.isometricChips = []
@@ -229,7 +232,11 @@ class MainWindow(QMainWindow):
         self.HelpButton.setPixmap(self.helpIcon)
         self.HelpButton.clicked.connect(lambda :self.OpenHelp())
         self.SettingsLayout.addWidget(self.HelpButton)
-
+        self.StatsButton = QLabel_clickable()
+        self.StatsButton.setObjectName("statsButton")
+        self.StatsButton.setPixmap(self.statsIcon)
+        self.StatsButton.clicked.connect(lambda: self.OpenStats())
+        self.SettingsLayout.addWidget(self.StatsButton)
 
         self.SettingsLayout.addStretch()
         self.topLeftContainerLayout.addLayout(self.SettingsLayout)
@@ -355,6 +362,8 @@ class MainWindow(QMainWindow):
         self.settingsDialog = Settings(self.settingsIcon,self.audioPlayer,self.soundEffectPlayer,trackNames,self.mainContainer)
         self.helpIcon = QPixmap("./assets/UI elements/info.png")
         self.helpDialog = Help(self.helpIcon,self.mainContainer)
+        self.statsIcon = QPixmap("./assets/UI elements/stats.png")
+        self.statsDialog = Statistic(self.statsIcon, self.game, self.mainContainer)
 
     """
     fix for contentsRect() returning incorrect values
@@ -781,6 +790,21 @@ class MainWindow(QMainWindow):
 
     def OpenHelp(self):
         self.helpDialog.exec()
+
+    def OpenStats(self):
+        self.statsDialog.refresh()
+        self.statsDialog.exec()
+
+    def closeEvent(self, event):
+
+        reply = QMessageBox.question(self, 'Message',
+                                     "Are you sure to quit?", QMessageBox.StandardButton.Yes |
+                                     QMessageBox.StandardButton.No, QMessageBox.StandardButton.No)
+
+        if reply == QMessageBox.StandardButton.Yes:
+            event.accept()
+        else:
+            event.ignore()
 
     def removeChips(self):
         if not self.canBet:

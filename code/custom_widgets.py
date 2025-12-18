@@ -163,3 +163,40 @@ class FlippableCard(QLabel):
         painter.drawPixmap(x_offset, 0, scaled)
         painter.end()
         self.setPixmap(result)
+
+class Statistic(QDialog):
+    def __init__(self, icon, game, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Statistics")
+        self.setWindowIcon(QIcon(icon))
+        self.setFixedSize(300, 260)
+
+        self.game = game
+        layout = QVBoxLayout()
+        layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+
+        self.labels = {}
+        for key in [
+            "rounds_played",
+            "total_gain",
+            "average_bet",
+            "average_gain",
+            "average_player_score",
+            "average_dealer_score"
+        ]:
+            label = QLabel()
+            label.setObjectName("statsLabel")
+            layout.addWidget(label)
+            self.labels[key] = label
+
+        self.setLayout(layout)
+        self.refresh()
+
+    def refresh(self):
+        stats = self.game.stats()
+        self.labels["rounds_played"].setText(f"Rounds played: {stats['rounds_played']}")
+        self.labels["total_gain"].setText(f"Total gain: {stats['total_gain']}$")
+        self.labels["average_bet"].setText(f"Average bet: {stats['average_bet']}$")
+        self.labels["average_gain"].setText(f"Average gain: {stats['average_gain']}$")
+        self.labels["average_player_score"].setText(f"Avg player score: {stats['average_player_score']}")
+        self.labels["average_dealer_score"].setText(f"Avg dealer score: {stats['average_dealer_score']}")

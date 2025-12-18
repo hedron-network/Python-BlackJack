@@ -7,6 +7,13 @@ class Game21:
         self.suits = ["♠", "♥", "♦", "♣"]
         self.ranks = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"]
 
+        """Init statistics variables"""
+        self.total_rounds = 0
+        self.total_bet_amount = 0
+        self.total_gain = 0
+        self.total_player_score = 0
+        self.total_dealer_score = 0
+
         self.new_round()
 
         """ Prepares for a new round. """
@@ -102,12 +109,56 @@ class Game21:
 
 
     """ Updates balance based on result multipliers and returns payout. """
-
     def resolve_bet(self, result_key):
         multipliers = {
             "BUST": 0, "LOSS": 0, "PUSH": 1,
             "WIN": 2, "DEALER_BUST": 2, "BLACKJACK": 2.5
         }
+
         payout = int(self.current_bet * multipliers[result_key])
+
+        """Update Statistic"""
+        self.total_rounds += 1
+        self.total_bet_amount += self.current_bet
+        self.total_gain += payout
+        self.total_player_score += self.player_total()
+        self.total_dealer_score += self.dealer_total()
+
         self.current_bet = 0
         return payout
+
+
+    """Statistic Methods"""
+    def average_bet(self):
+        if self.total_rounds == 0:
+            return 0
+        return self.total_bet_amount / self.total_rounds
+
+
+    def average_gain(self):
+        if self.total_rounds == 0:
+            return 0
+        return self.total_gain / self.total_rounds
+
+
+    def average_player_score(self):
+        if self.total_rounds == 0:
+            return 0
+        return self.total_player_score / self.total_rounds
+
+
+    def average_dealer_score(self):
+        if self.total_rounds == 0:
+            return 0
+        return self.total_dealer_score / self.total_rounds
+
+
+    def stats(self):
+        return {
+            "rounds_played": self.total_rounds,
+            "total_gain": self.total_gain,
+            "average_bet": round(self.average_bet(), 2),
+            "average_gain": round(self.average_gain(), 2),
+            "average_player_score": round(self.average_player_score(), 2),
+            "average_dealer_score": round(self.average_dealer_score(), 2),
+        }
