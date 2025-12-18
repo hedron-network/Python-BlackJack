@@ -797,8 +797,8 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, event):
 
-        reply = QMessageBox.question(self, 'Message',
-                                     "Are you sure to quit?", QMessageBox.StandardButton.Yes |
+        reply = QMessageBox.question(self, 'Quit Application',
+                                     "Are you sure you want to quit ?", QMessageBox.StandardButton.Yes |
                                      QMessageBox.StandardButton.No, QMessageBox.StandardButton.No)
 
         if reply == QMessageBox.StandardButton.Yes:
