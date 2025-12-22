@@ -15,7 +15,6 @@ QPushButton{
     border: 2px solid gold;
     border-radius: 15;
 }
-
 QDialog{
     background-color: #004d20;
 }

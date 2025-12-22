@@ -125,7 +125,7 @@ class Game21:
         self.total_dealer_score += self.dealer_total()
 
         self.current_bet = 0
-        return payout
+        return payout//1
 
 
     """Statistic Methods"""

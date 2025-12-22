@@ -1,5 +1,3 @@
-import time
-from pstats import Stats
 
 from PyQt6.QtGui import QPixmap, QPainter, QIcon
 from PyQt6.QtMultimedia import QMediaPlayer
@@ -105,6 +103,18 @@ class MainWindow(QMainWindow):
         lowerHorizontalLayout.addWidget(self.bottomLeftContainer,1)
         lowerHorizontalLayout.addWidget(self.bottomRightContainer,1)
          #endregion
+
+        #region Feedback
+        self.feedBackLabel = QLabel(self.animationOverlayContainer)
+        self.feedBackLabel.setObjectName("feedbackLabel")
+        pixmap = QPixmap("./assets/UI elements/impact_bubble.png")
+        self.feedBackLabel.setPixmap(pixmap)
+        self.feedBackLabel.setScaledContents(True)
+        self.feedBackLabel.setGeometry(self.width()//2,self.height()//2,0,0)
+        self.feedBackText = QLabel(self.feedBackLabel)
+
+
+        #endregion
 
         #region Deck
         self.topRightContainerLayout = QVBoxLayout()
@@ -462,6 +472,30 @@ class MainWindow(QMainWindow):
 
     #endregion
 #region Animation Handlers
+    def FeedbackAnimation(self,out =True):
+        self.feedBackAnim = QPropertyAnimation(self.feedBackLabel,b"geometry")
+        self.feedBackAnim.setDuration(1000)
+
+        start= QRect(
+                self.width()//2, self.height()//2,
+                0,0)
+        end =QRect(
+                self.width()//4, self.height()//4,
+                self.width()//2, self.height()//2
+            )
+        if out:
+            self.feedBackAnim.setStartValue(start)
+            self.feedBackAnim.setEndValue(end)
+            self.feedBackAnim.setEasingCurve(QEasingCurve.Type.OutElastic)
+        else:
+            self.feedBackAnim.setStartValue(end)
+            self.feedBackAnim.setEndValue(start)
+            self.feedBackAnim.setEasingCurve(QEasingCurve.Type.InOutCubic)
+        self.feedBackAnim.start()
+
+        if out:
+            QTimer.singleShot(1500, lambda: self.FeedbackAnimation(False))
+
     def MoneyAnimation(self,end,duration):
         if self.playerMoney<end:
             self.playerMoney+=1
@@ -600,6 +634,7 @@ class MainWindow(QMainWindow):
             self.soundEffectPlayer.stop()
             self.soundEffectPlayer.playAt(4)
             return
+        self.canActivateButtons=False
         # Player takes a card
         card = self.game.draw_card()
         self.game.player_hand.append(card)
@@ -610,6 +645,8 @@ class MainWindow(QMainWindow):
 
         if self.game.player_total() > 21:
             QTimer.singleShot(3000,lambda :self.end_round())
+        else:
+            self.canActivateButtons=True
 
 
     def on_stand(self):
@@ -689,14 +726,22 @@ class MainWindow(QMainWindow):
     def end_round(self):
         res = self.game.decide_winner()
         print(res)
+        self.PlayerFeedback(res)
         money = self.playerMoney+self.game.resolve_bet(res)
         delta = money - self.playerMoney
         if delta>0:
-            animtime = 1000//delta
+            animtime = max(1000//delta,1)
             self.MoneyAnimation(money,animtime)
 
         self.on_new_round()
-
+    def PlayerFeedback(self,res):
+        self.FeedbackAnimation()
+        QTimer.singleShot(1000,lambda :self.ShowTextFeedback(res))
+    def ShowTextFeedback(self,text):
+        self.feedBackText.setText(text)
+        #self.feedBackText.setGeometry(0,0,100,100)
+        self.feedBackText.show()
+        QTimer.singleShot(1000,lambda :self.feedBackText.hide())
     def NextTrack(self,status):
         if status != QMediaPlayer.MediaStatus.EndOfMedia:
             return
