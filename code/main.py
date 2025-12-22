@@ -8,7 +8,7 @@ import sys
 
 # this project should use a modular approach - try to keep UI logic and game logic separate
 from game_logic import Game21
-from custom_widgets import AudioPlayer, FlippableCard, QLabel_clickable, Settings, Help,Statistic
+from custom_widgets import AudioPlayer, FlippableCard, QLabel_clickable, Settings, Help,Statistic, MainMenu
 
 
 class MainWindow(QMainWindow):
@@ -25,14 +25,18 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Game of 21")
 
         # set the windows dimensions
+        self.baseContainer = QWidget()
         self.setGeometry(100, 50, 1000, 700)
-        self.mainContainer = QWidget()
+        self.mainContainer = QWidget(self.baseContainer)
         self.mainContainer.setObjectName("mainContainer")
         self.mainContainer.setContentsMargins(0, 0, 0, 0)
-        self.setCentralWidget(self.mainContainer)
+        self.setCentralWidget(self.baseContainer)
 
         #region Asset Loading
         self.game = Game21()
+        self.MainMenu = None
+        self.logo = None
+        self.QuitToMenuIcon= None
         self.settingsIcon = None
         self.settingsDialog= None
         self.helpIcon = None
@@ -58,6 +62,7 @@ class MainWindow(QMainWindow):
 
     def initUI(self):
         #region Container Setup
+        
 
         self.background = QLabel(self.mainContainer)
         self.background.setObjectName("background")
@@ -240,6 +245,11 @@ class MainWindow(QMainWindow):
         self.topLeftContainerLayout = QVBoxLayout()
         self.topLeftContainer.setLayout(self.topLeftContainerLayout)
         self.SettingsLayout= QHBoxLayout()
+        self.QuitButton = QLabel_clickable()
+        self.QuitButton.setObjectName("quitButton")
+        self.QuitButton.setPixmap(self.QuitToMenuIcon)
+        self.QuitButton.clicked.connect(lambda : self.QuitToMainMenu())
+        self.SettingsLayout.addWidget(self.QuitButton)
         self.SettingsButton = QLabel_clickable()
         self.SettingsButton.setObjectName("settingsButton")
         self.SettingsButton.setPixmap(self.settingsIcon)
@@ -365,8 +375,8 @@ class MainWindow(QMainWindow):
                 self.cards.append(pixmap)
         self.cardBack = QPixmap("./assets/cards/backs/Flat/Card_Back.png")
         self.deckAsset = QPixmap("./assets/cards/backs/Flat/Card_DeckA-88x140.png").scaled(88, 140)
-        audioSources =["./assets/sounds/All That Jazz.mp3"]
-        trackNames = ["All That Jazz"]
+        audioSources =["./assets/sounds/la valse d'hugo.mp3","./assets/sounds/All That Jazz.mp3"]
+        trackNames = ["la valse d'hugo","All That Jazz"]
         self.audioPlayer= AudioPlayer(audioSources,trackNames,self.mainContainer)
         self.InfoBar = QPixmap("./assets/UI elements/bar.png").scaled(200,5)
         soundEffects = ["./assets/sounds/card-draw-sound.mp3","./assets/sounds/flipcard.mp3","./assets/sounds/single_poker_chip.mp3","./assets/sounds/allin.mp3","./assets/sounds/error-bet.mp3"]
@@ -383,6 +393,10 @@ class MainWindow(QMainWindow):
         self.statsIcon = QPixmap("./assets/UI elements/stats.png")
         self.statsDialog = Statistic(self.statsIcon, self.game, self.mainContainer)
 
+        self.logo = QPixmap("./assets/UI elements/blackjack.jpg").scaled(300,150)
+        self.QuitToMenuIcon = QPixmap("./assets/UI elements/logout.png")
+        self.MainMenu = MainMenu(self.logo,self.mainContainer)
+
     """
     fix for contentsRect() returning incorrect values
     is triggered after the UI is fully loaded
@@ -395,6 +409,7 @@ class MainWindow(QMainWindow):
             self.bottomContainer.contentsRect()
         )
         self.dealerCardsContainer.setGeometry(self.topContainer.contentsRect())
+        self.mainContainer.setGeometry(self.baseContainer.contentsRect())
         self.background.setGeometry(self.mainContainer.contentsRect())
         self.BottomButtonContainer.setGeometry(
             self.bottomContainer.width() // 3, 0,
@@ -416,6 +431,8 @@ class MainWindow(QMainWindow):
     """
     def resizeEvent(self, event):
         super().resizeEvent(event)
+        if hasattr(self, 'mainContainer'):
+            self.mainContainer.setGeometry(self.baseContainer.contentsRect())
         if hasattr(self, "background"):
             self.background.setGeometry(self.mainContainer.contentsRect())
         if hasattr(self, 'animationOverlayContainer'):
@@ -717,6 +734,12 @@ class MainWindow(QMainWindow):
 #endregion
 
     #region Helper
+    def QuitToMainMenu(self):
+        self.audioPlayer.stop()
+        self.soundEffectPlayer.stop()
+        self.MainMenu.setGeometry(self.baseContainer.contentsRect())
+        self.MainMenu.show()
+
     def setPlayerTotal(self):
         self.playerTotalLabel.setText("Total : "+ str(self.game.player_total()))
     def setDealerTotal(self):
@@ -779,7 +802,7 @@ class MainWindow(QMainWindow):
     def NextTrack(self,status):
         if status != QMediaPlayer.MediaStatus.EndOfMedia:
             return
-        if self.audioPlayer.selected<self.audioPlayer.sounds:
+        if self.audioPlayer.selected<len(self.audioPlayer.sounds):
             self.audioPlayer.selected+=1
         else:
             self.audioPlayer.selected=0

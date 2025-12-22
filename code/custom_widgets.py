@@ -1,13 +1,37 @@
 from PyQt6.QtCore import QUrl, pyqtProperty, Qt, pyqtSignal
 from PyQt6.QtGui import QPixmap, QPainter, QIcon
 from PyQt6.QtMultimedia import QAudioOutput, QMediaPlayer
-from PyQt6.QtWidgets import QWidget, QLabel, QVBoxLayout, QSlider, QDialog, QComboBox
+from PyQt6.QtWidgets import QWidget, QLabel, QVBoxLayout, QSlider, QDialog, QComboBox, QPushButton
 
 
 class QLabel_clickable(QLabel):
     clicked=pyqtSignal()
     def mousePressEvent(self, event):
         self.clicked.emit()
+
+class MainMenu(QWidget):
+    def __init__(self,logo, parent=None):
+        super().__init__(parent)
+        self.setGeometry(0,0,parent.width(),parent.height())
+        self.setObjectName("MainMenu")
+        self.mainLayout = QVBoxLayout()
+        self.setLayout(self.mainLayout)
+
+        self.mainLayout.addStretch()
+        self.TitleLabel = QLabel()
+        self.TitleLabel.setPixmap(logo)
+        self.mainLayout.addSpacing(20)
+        self.playButton = QPushButton("Play")
+        self.playButton.setObjectName("MainMenuButton")
+        self.ResetMoneyButton = QPushButton("Reset Money")
+        self.ResetMoneyButton.setObjectName("MainMenuButton")
+        self.quitButton =QPushButton("Quit")
+        self.quitButton.setObjectName("MainMenuButton")
+        self.mainLayout.addWidget(self.TitleLabel,alignment=Qt.AlignmentFlag.AlignCenter)
+        self.mainLayout.addWidget(self.playButton,alignment=Qt.AlignmentFlag.AlignCenter)
+        self.mainLayout.addWidget(self.ResetMoneyButton,alignment=Qt.AlignmentFlag.AlignCenter)
+        self.mainLayout.addWidget(self.quitButton,alignment=Qt.AlignmentFlag.AlignCenter)
+        self.mainLayout.addStretch()
 class Help(QDialog):
     def __init__(self,icon, parent=None):
         super().__init__(parent)
