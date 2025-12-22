@@ -111,7 +111,15 @@ class MainWindow(QMainWindow):
         self.feedBackLabel.setPixmap(pixmap)
         self.feedBackLabel.setScaledContents(True)
         self.feedBackLabel.setGeometry(self.width()//2,self.height()//2,0,0)
-        self.feedBackText = QLabel(self.feedBackLabel)
+        self.feedBackText = QLabel(self.animationOverlayContainer)
+        self.feedBackText.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.feedBackText.setGeometry(
+            0,
+            self.height() // 4,
+            self.width(),
+            self.height() // 2
+        )
+        self.feedBackText.setObjectName("feedbackText")
 
 
         #endregion
@@ -472,10 +480,23 @@ class MainWindow(QMainWindow):
 
     #endregion
 #region Animation Handlers
-    def FeedbackAnimation(self,out =True):
+    def setFeedbackFontSize(self, size,res):
+        font = self.feedBackText.font()
+        font.setPointSizeF(size)
+        self.feedBackText.setFont(font)
+        self.feedBackText.setProperty("_fontSize", size)
+        self.feedBackText.setText(res)
+
+
+        
+    def FeedbackAnimation(self,res,out =True):
         self.feedBackAnim = QPropertyAnimation(self.feedBackLabel,b"geometry")
         self.feedBackAnim.setDuration(1000)
 
+        self.textAnim = QPropertyAnimation(self.feedBackText, b"_fontSize")
+        self.textAnim.setDuration(1000)
+
+        
         start= QRect(
                 self.width()//2, self.height()//2,
                 0,0)
@@ -485,17 +506,33 @@ class MainWindow(QMainWindow):
             )
         if out:
             self.feedBackAnim.setStartValue(start)
+            self.textAnim.setStartValue(8)
             self.feedBackAnim.setEndValue(end)
+            self.textAnim.setEndValue(80)
             self.feedBackAnim.setEasingCurve(QEasingCurve.Type.OutElastic)
+            self.textAnim.setEasingCurve(QEasingCurve.Type.OutElastic)
         else:
             self.feedBackAnim.setStartValue(end)
+            self.textAnim.setStartValue(80)
             self.feedBackAnim.setEndValue(start)
+            self.textAnim.setEndValue(8)
             self.feedBackAnim.setEasingCurve(QEasingCurve.Type.InOutCubic)
+            self.textAnim.setEasingCurve(QEasingCurve.Type.InOutCubic)
+
+        self.textAnim.valueChanged.connect(
+            lambda v: self.setFeedbackFontSize(v,res)
+        )
+
+
         self.feedBackAnim.start()
+        self.textAnim.start()
 
         if out:
-            QTimer.singleShot(1500, lambda: self.FeedbackAnimation(False))
-
+            QTimer.singleShot(1500, lambda: self.FeedbackAnimation(res,False))
+        if not out:
+            self.feedBackAnim.finished.connect(
+                lambda: self.feedBackText.hide()
+            )
     def MoneyAnimation(self,end,duration):
         if self.playerMoney<end:
             self.playerMoney+=1
@@ -735,13 +772,10 @@ class MainWindow(QMainWindow):
 
         self.on_new_round()
     def PlayerFeedback(self,res):
-        self.FeedbackAnimation()
-        QTimer.singleShot(1000,lambda :self.ShowTextFeedback(res))
-    def ShowTextFeedback(self,text):
-        self.feedBackText.setText(text)
-        #self.feedBackText.setGeometry(0,0,100,100)
         self.feedBackText.show()
-        QTimer.singleShot(1000,lambda :self.feedBackText.hide())
+        self.setFeedbackFontSize(8,res)
+        self.feedBackText.setText(res)
+        self.FeedbackAnimation(res)
     def NextTrack(self,status):
         if status != QMediaPlayer.MediaStatus.EndOfMedia:
             return

@@ -21,6 +21,10 @@ QDialog{
 QLabel{
     color: aliceblue;
 }
+QLabel#feedbackText{
+    color : #000;
+    font-family: Impact;
+}
 QLabel#SettingsLabel{
     font: arial;
 }
