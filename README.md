@@ -28,21 +28,19 @@ The final goal of the application is to provide an intuitive and professional lo
 - [x] **Dealer Hand Display** - Show cards with face-down card until reveal, display total
 - [x] **Control Buttons** - Hit, Stand, and New Round buttons
 - [x] **Scoreboard** - Display player and dealer hand totals prominently
-- [ ] **Visual Feedback** - Clear win/lose/push indication at round end
+- [x] **Visual Feedback** - Clear win/lose/push indication at round end
 - [x] **Card Images** - Use graphical card images 
 
 ### Phase 3: Design & Accessibility
 - [x] **External Stylesheet** - Separate QSS file for styling
 - [x] **Images & Icons** - Integrate card images and UI icons
 - [x] **Accessibility Features** - Large fonts, high contrast, clear labeling
-- [ ] **Turn Indicator** - Clear display of whose turn it is
+- [x] **Turn Indicator** - Clear display of whose turn it is
 
 ### Phase 4: Additional Feature
 
 **Options Under Consideration:**
 - [x] **Statistics Tracker** - Track wins/losses/pushes across sessions
-- [ ] **Theme Switcher** - Light/Dark mode toggle
-- [ ] **Best of 3 Mode** - Multi-round gameplay with series winner
 - [x] **Settings Panel** - Adjust font size, contrast, animation speed
 
 ### Phase 5: Animations & Polish
@@ -52,7 +50,7 @@ The final goal of the application is to provide an intuitive and professional lo
 - [ ] **Smooth Transitions** - Polish all state changes with subtle animations
 
 ### Phase 6: Documentation
-- [ ] **Code Comments** - Complete inline documentation for all methods and logic
+- [x] **Code Comments** - Complete inline documentation for all methods and logic
 - [ ] **UI Design Document** - Comprehensive design justification document including:
   - Layout choices and widget selection
   - Interaction flow diagrams
