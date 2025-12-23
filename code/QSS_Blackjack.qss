@@ -12,8 +12,11 @@ QPushButton{
     color : aliceblue;
 
     padding: 10;
-    border: 2px solid gold;
+    border: 2px solid rgb(142, 120, 0);
     border-radius: 15;
+}
+QPushButton:hover{
+    border: 2px solid gold;
 }
 QDialog{
     background-color: #004d20;
