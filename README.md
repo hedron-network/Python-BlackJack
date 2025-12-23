@@ -13,57 +13,7 @@ The final goal of the application is to provide an intuitive and professional lo
 ---
 
 ## RoadMap / Progress
-
-### Phase 1: Core Game Logic
-- [x] **Deck Mechanics** - Create and shuffle a standard 52-card deck
-- [x] **Card Distribution** - Deal 2 cards to player (face up) and dealer (1 up, 1 down)
-- [x] **Scoring System** - Calculate hand values correctly
-- [x] **Ace Handling** - Implement dynamic Ace value (1 or 11) based on hand optimization
-- [x] **Dealer Functionality** - Dealer hits on < 17, stands on ≥ 17
-- [x] **Win Condition Logic** - Determine winner, handle push (tie), detect bust
-
-### Phase 2: Required UI Features
-- [x] **Responsive Window Design** - Layout reflows sensibly when resized
-- [x] **Player Hand Display** - Show cards and current total clearly
-- [x] **Dealer Hand Display** - Show cards with face-down card until reveal, display total
-- [x] **Control Buttons** - Hit, Stand, and New Round buttons
-- [x] **Scoreboard** - Display player and dealer hand totals prominently
-- [x] **Visual Feedback** - Clear win/lose/push indication at round end
-- [x] **Card Images** - Use graphical card images 
-
-### Phase 3: Design & Accessibility
-- [x] **External Stylesheet** - Separate QSS file for styling
-- [x] **Images & Icons** - Integrate card images and UI icons
-- [x] **Accessibility Features** - Large fonts, high contrast, clear labeling
-- [x] **Turn Indicator** - Clear display of whose turn it is
-
-### Phase 4: Additional Feature
-
-**Options Under Consideration:**
-- [x] **Statistics Tracker** - Track wins/losses/pushes across sessions
-- [x] **Settings Panel** - Adjust font size, contrast, animation speed
-
-### Phase 5: Animations & Polish
-- [x] **Card Draw Animation** - Smooth card dealing animation
-- [x] **Card Flip Animation** - Reveal dealer's face-down card with flip effect
-- [x] **Chip Animations** - Chips animation for betting feedback
-- [x] **Smooth Transitions** - Polish all state changes with subtle animations
-
-### Phase 6: Documentation
-- [x] **Code Comments** - Complete inline documentation for all methods and logic
-- [ ] **UI Design Document** - Comprehensive design justification document including:
-  - Layout choices and widget selection
-  - Interaction flow diagrams
-  - Color and font decisions
-  - Accessibility considerations
-  - Screenshots with annotations
-  - References to Nielsen's 10 Heuristics and Gestalt Principles
-  - Third-party asset credits
-- [ ] **Video Demo** - 5-6 minute recorded demonstration with:
-  - All team members presenting (cameras on)
-  - Code walkthrough
-  - Feature demonstration
-  - Explanation of design decisions
+- V1 completed
 
 ---
 
