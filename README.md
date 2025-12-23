@@ -76,6 +76,7 @@ Python-Blackjack/
 |  ├─ game_logic.py
 |  ├─ QSS_blackjack.qss
 │  ├─ assets/
+│  │  ├─ asset_attribution
 │  │  ├─ UI elements/..
 │  │  ├─ cards/
 │  │  |  ├─ backs/
