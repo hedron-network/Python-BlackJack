@@ -72,7 +72,7 @@ The final goal of the application is to provide an intuitive and professional lo
 Python-Blackjack/
 ├─ code/
 |  ├─ main.py
-|  ├─ custom_widgets.py
+|  ├─ custom-widgets.py
 |  ├─ game_logic.py
 |  ├─ QSS_blackjack.qss
 │  ├─ assets/
@@ -107,7 +107,7 @@ Python-Blackjack/
 ---
 
 ## Credits & Attribution
-UI & sound design: @hedron-network
+UI & sound design: @hedron-network,  
 game logic & custom track: @Hugomlr
 
 ### Asset Attributions:
