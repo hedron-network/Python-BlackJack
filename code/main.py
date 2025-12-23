@@ -1,9 +1,9 @@
 
-from PyQt6.QtGui import QPixmap, QPainter, QIcon
+from PyQt6.QtGui import QPixmap
 from PyQt6.QtMultimedia import QMediaPlayer
 from PyQt6.QtWidgets import QApplication,QMessageBox, QMainWindow, QLabel, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, \
-    QGridLayout, QDialog, QSlider
-from PyQt6.QtCore import Qt, QEasingCurve, QPropertyAnimation, QRect, pyqtProperty, QTimer
+    QGridLayout
+from PyQt6.QtCore import Qt, QEasingCurve, QPropertyAnimation, QRect, QTimer
 import sys
 
 # this project should use a modular approach - try to keep UI logic and game logic separate
@@ -248,7 +248,7 @@ class MainWindow(QMainWindow):
         self.QuitButton = QLabel_clickable()
         self.QuitButton.setObjectName("quitButton")
         self.QuitButton.setPixmap(self.QuitToMenuIcon)
-        self.QuitButton.clicked.connect(lambda : self.QuitToMainMenu())
+        self.QuitButton.clicked.connect(lambda : self.OpenMainMenu())
         self.SettingsLayout.addWidget(self.QuitButton)
         self.SettingsButton = QLabel_clickable()
         self.SettingsButton.setObjectName("settingsButton")
@@ -353,8 +353,15 @@ class MainWindow(QMainWindow):
         self.buttonLayout.addWidget(self.standButton)
         self.buttonLayout.addStretch()
         #endregion
+        #region Main Menu
+        self.isMainMenuOpen = False
+        self.MainMenu.play.connect(lambda : self.OpenMainMenu())
+        self.MainMenu.resetMoney.connect(lambda : self.ResetMoney())
+        self.MainMenu.close.connect(lambda : self.close())
+        self.MainMenu.settings.connect(lambda : self.OpenSettings())
+        #endregion
 
-        self.background.lower()
+
         self.animationOverlayContainer.raise_()
         self.audioPlayer.play()
         self.ShowCurrentTrack()
@@ -393,9 +400,9 @@ class MainWindow(QMainWindow):
         self.statsIcon = QPixmap("./assets/UI elements/stats.png")
         self.statsDialog = Statistic(self.statsIcon, self.game, self.mainContainer)
 
-        self.logo = QPixmap("./assets/UI elements/blackjack.jpg").scaled(300,150)
+        self.logo = QPixmap("./assets/UI elements/blackjack.png").scaled(300,300)
         self.QuitToMenuIcon = QPixmap("./assets/UI elements/logout.png")
-        self.MainMenu = MainMenu(self.logo,self.mainContainer)
+        self.MainMenu = MainMenu(self.logo,self.baseContainer)
 
     """
     fix for contentsRect() returning incorrect values
@@ -423,6 +430,8 @@ class MainWindow(QMainWindow):
         )
 
         self.PlayerInformationContainer.setGeometry(self.width()//4,0,self.topContainer.width()//2,self.topContainer.height()//2)
+        self.MainMenu.updateGeometry()
+        self.OpenMainMenu()
 
 
     """
@@ -466,6 +475,15 @@ class MainWindow(QMainWindow):
         if hasattr(self, 'PlayerInformationContainer'):
             self.PlayerInformationContainer.setGeometry(self.width() // 4, 0, self.topContainer.width() // 2,
                                                         self.topContainer.height() // 2)
+        if hasattr(self, 'feedBackText'):
+            self.feedBackText.setGeometry(
+                0,
+                self.height() // 4,
+                self.width(),
+                self.height() // 2
+            )
+        if hasattr(self, 'MainMenu'):
+            self.MainMenu.updateGeometry()
 #endregion
 #region Round Management
     def new_round_setup(self):
@@ -734,12 +752,20 @@ class MainWindow(QMainWindow):
 #endregion
 
     #region Helper
-    def QuitToMainMenu(self):
-        self.audioPlayer.stop()
-        self.soundEffectPlayer.stop()
+    def OpenMainMenu(self):
+        print("Toggling Main Menu", self.isMainMenuOpen)
         self.MainMenu.setGeometry(self.baseContainer.contentsRect())
-        self.MainMenu.show()
-
+        if self.isMainMenuOpen:
+            self.MainMenu.hide()
+            self.mainContainer.show()
+            self.isMainMenuOpen = False
+        else:
+            self.MainMenu.show()
+            self.mainContainer.hide()
+            self.isMainMenuOpen = True
+    def ResetMoney(self):
+        self.playerMoney = 1000
+        self.CurrentMoneyLabel.setText(str(self.playerMoney))
     def setPlayerTotal(self):
         self.playerTotalLabel.setText("Total : "+ str(self.game.player_total()))
     def setDealerTotal(self):

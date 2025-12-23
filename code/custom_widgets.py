@@ -1,4 +1,4 @@
-from PyQt6.QtCore import QUrl, pyqtProperty, Qt, pyqtSignal
+from PyQt6.QtCore import QUrl, pyqtProperty, Qt, pyqtSignal,QTimer
 from PyQt6.QtGui import QPixmap, QPainter, QIcon
 from PyQt6.QtMultimedia import QAudioOutput, QMediaPlayer
 from PyQt6.QtWidgets import QWidget, QLabel, QVBoxLayout, QSlider, QDialog, QComboBox, QPushButton
@@ -10,28 +10,67 @@ class QLabel_clickable(QLabel):
         self.clicked.emit()
 
 class MainMenu(QWidget):
+    play= pyqtSignal()
+    resetMoney= pyqtSignal()
+    settings = pyqtSignal()
+    close = pyqtSignal()
+
+
+    
     def __init__(self,logo, parent=None):
         super().__init__(parent)
         self.setGeometry(0,0,parent.width(),parent.height())
         self.setObjectName("MainMenu")
         self.mainLayout = QVBoxLayout()
         self.setLayout(self.mainLayout)
-
+        self.backgroundLabel = QLabel(self)
+        self.backgroundLabel.setObjectName("background")
         self.mainLayout.addStretch()
         self.TitleLabel = QLabel()
         self.TitleLabel.setPixmap(logo)
-        self.mainLayout.addSpacing(20)
+        self.FeedbackLabel = QLabel("")
+        self.FeedbackLabel.setObjectName("FeedbackLabel")
         self.playButton = QPushButton("Play")
         self.playButton.setObjectName("MainMenuButton")
+        self.playButton.clicked.connect(lambda : self.play.emit())
+        self.playButton.setMinimumWidth(200)
         self.ResetMoneyButton = QPushButton("Reset Money")
         self.ResetMoneyButton.setObjectName("MainMenuButton")
+        self.ResetMoneyButton.clicked.connect(lambda : self.ResetMoney())
+        self.ResetMoneyButton.setMinimumWidth(200)
+        self.settingsButton = QPushButton("Settings")
+        self.settingsButton.setObjectName("MainMenuButton")
+        self.settingsButton.clicked.connect(lambda : self.settings.emit())
+        self.settingsButton.setMinimumWidth(200)
         self.quitButton =QPushButton("Quit")
         self.quitButton.setObjectName("MainMenuButton")
+        self.quitButton.clicked.connect(lambda : self.close.emit())
+        self.quitButton.setMinimumWidth(200)
+
+
         self.mainLayout.addWidget(self.TitleLabel,alignment=Qt.AlignmentFlag.AlignCenter)
+        self.mainLayout.addSpacing(40)
+        self.mainLayout.addWidget(self.FeedbackLabel,alignment=Qt.AlignmentFlag.AlignCenter)
+        self.mainLayout.addSpacing(40)
         self.mainLayout.addWidget(self.playButton,alignment=Qt.AlignmentFlag.AlignCenter)
+        self.mainLayout.addSpacing(10)
         self.mainLayout.addWidget(self.ResetMoneyButton,alignment=Qt.AlignmentFlag.AlignCenter)
+        self.mainLayout.addSpacing(10)
+        self.mainLayout.addWidget(self.settingsButton,alignment=Qt.AlignmentFlag.AlignCenter)
+        self.mainLayout.addSpacing(10)
         self.mainLayout.addWidget(self.quitButton,alignment=Qt.AlignmentFlag.AlignCenter)
         self.mainLayout.addStretch()
+
+        self.backgroundLabel.lower()
+    def updateGeometry(self):
+        self.setGeometry(0,0,self.parent().width(),self.parent().height())
+        self.backgroundLabel.setGeometry(self.contentsRect())
+    def ResetMoney(self):
+        self.FeedbackLabel.setText("Money has been reset to $1000")
+        self.resetMoney.emit()
+        QTimer.singleShot(2000, lambda: self.FeedbackLabel.setText(""))
+        
+    
 class Help(QDialog):
     def __init__(self,icon, parent=None):
         super().__init__(parent)

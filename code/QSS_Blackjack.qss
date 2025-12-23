@@ -5,6 +5,13 @@ QLabel#background{
     background-origin: content;
     background-clip: content;
 }
+QWidget#MainMenu{
+    background-image: url("./assets/UI elements/background.jpg");
+    background-repeat: repeat-y;
+    background-position: center;
+    background-origin: content;
+    background-clip: content;
+}
 QPushButton{
     background-image: url("./assets/UI elements/wood-background.jpg");
     background-position: center;
