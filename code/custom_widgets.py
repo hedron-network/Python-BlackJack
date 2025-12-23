@@ -62,13 +62,21 @@ class MainMenu(QWidget):
         self.mainLayout.addStretch()
 
         self.backgroundLabel.lower()
+
+    """
+    Handles the resizing of the main menu
+    returns void
+    """
     def updateGeometry(self):
         self.setGeometry(0,0,self.parent().width(),self.parent().height())
         self.backgroundLabel.setGeometry(self.contentsRect())
+    """
+    Handles the resetting of the player's money
+    returns void
+    """
     def ResetMoney(self):
-        self.FeedbackLabel.setText("Money has been reset to $1000")
         self.resetMoney.emit()
-        QTimer.singleShot(2000, lambda: self.FeedbackLabel.setText(""))
+        
         
     
 class Help(QDialog):
@@ -113,7 +121,7 @@ class Help(QDialog):
 class Settings(QDialog):
     def __init__(self,icon,audioPlayer,SoundPlayer,tracks, parent=None):
         super().__init__(parent)
-        self.setGeometry(parent.width()//2+50, parent.height()//2, 100, 300)
+        self.setGeometry(parent.width()//2+50, parent.height()//2+50, 100, 300)
         self.setWindowTitle("Settings")
         self.setWindowIcon(QIcon(icon))
 
@@ -148,11 +156,17 @@ class Settings(QDialog):
         self.mainLayout.addStretch()
         self.setLayout(self.mainLayout)
 
-
+    """
+    Handles setting the volume levels
+    returns void
+    """
     def SliderValuesChanged(self):
         self.audioPlayer.SetVolume(self.musicSlider.value()/100)
         self.SoundPlayer.SetVolume(self.soundSlider.value()/100)
-
+    """
+    Handles changing the audio track
+    returns void
+    """
     def changeTracks(self):
         self.audioPlayer.playAt(self.tracksSelecter.currentIndex())
 
@@ -170,23 +184,57 @@ class AudioPlayer(QWidget):
         self.selected=0
         self.player.setSource(QUrl.fromLocalFile(self.sounds[0]))
         self.audio_output.setVolume(1)
+    """
+    Returns the name of the current track
+    returns string
+    """
     def CurrentTrack(self):
         return self.trackNames[self.selected]
+    """
+    Returns all track names
+    returns list[string]
+    """
     def AllTracks(self):
         return self.trackNames
+    """
+    sets the volume level
+    args
+        float vol -> volume level
+    returns void
+    """
     def SetVolume(self,vol):
         self.audio_output.setVolume(vol)
+    """
+    selects a track to play
+    args
+        int track -> track index
+    returns void
+    """
     def SelectTrack(self,track):
         if track>=len(self.sounds):
             return
         self.selected = track
         self.player.setSource(QUrl.fromLocalFile(self.sounds[track]))
+    """
+    plays the current track
+    returns void
+    """
     def play(self):
         if self.player.mediaStatus() != QMediaPlayer.MediaStatus.NoMedia:
             self.player.play()
+    """
+    plays a track at a given index
+    args
+        int index -> track index
+    returns void
+    """
     def playAt(self,index):
         self.SelectTrack(index)
         self.play()
+    """
+    stops the audio player
+    returns void
+    """
     def stop(self):
         self.player.stop()
 
