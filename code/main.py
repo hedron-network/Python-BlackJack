@@ -195,6 +195,14 @@ class MainWindow(QMainWindow):
         self.betInfoLayer.addStretch()
         mainPlayerInfoLayout.addLayout(self.betInfoLayer)
         mainPlayerInfoLayout.addStretch()
+        self.turnLayout = QHBoxLayout()
+        self.TurnLabel =QLabel("Player's Turn")
+        self.TurnLabel.setObjectName("staticInfoLabel")
+        self.turnLayout.addStretch()
+        self.turnLayout.addWidget(self.TurnLabel)
+        self.turnLayout.addStretch()
+        mainPlayerInfoLayout.addLayout(self.turnLayout)
+        mainPlayerInfoLayout.addStretch()
         #endregion
 
         #region Betting
@@ -853,6 +861,7 @@ class MainWindow(QMainWindow):
     def on_new_round(self):
         if not self.canStartNewRound:
             return
+        self.TurnLabel.setText("Player's Turn")
         self.canStartNewRound = False
         self.game.new_round()
         self.new_round_setup()
@@ -1088,6 +1097,7 @@ class MainWindow(QMainWindow):
     returns void
     """
     def DealerTurn(self):
+        self.TurnLabel.setText("Dealer's Turn")
         DoesDealerDraw = self.game.dealer_turn()
         self.setDealerTotal()
         if DoesDealerDraw:
