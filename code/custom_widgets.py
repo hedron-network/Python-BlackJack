@@ -1,13 +1,84 @@
-from PyQt6.QtCore import QUrl, pyqtProperty, Qt, pyqtSignal
+from PyQt6.QtCore import QUrl, pyqtProperty, Qt, pyqtSignal,QTimer
 from PyQt6.QtGui import QPixmap, QPainter, QIcon
 from PyQt6.QtMultimedia import QAudioOutput, QMediaPlayer
-from PyQt6.QtWidgets import QWidget, QLabel, QVBoxLayout, QSlider, QDialog, QComboBox
+from PyQt6.QtWidgets import QWidget, QLabel, QVBoxLayout, QSlider, QDialog, QComboBox, QPushButton
 
 
 class QLabel_clickable(QLabel):
     clicked=pyqtSignal()
     def mousePressEvent(self, event):
         self.clicked.emit()
+
+class MainMenu(QWidget):
+    play= pyqtSignal()
+    resetMoney= pyqtSignal()
+    settings = pyqtSignal()
+    close = pyqtSignal()
+
+
+    
+    def __init__(self,logo, parent=None):
+        super().__init__(parent)
+        self.setGeometry(0,0,parent.width(),parent.height())
+        self.setObjectName("MainMenu")
+        self.mainLayout = QVBoxLayout()
+        self.setLayout(self.mainLayout)
+        self.backgroundLabel = QLabel(self)
+        self.backgroundLabel.setObjectName("background")
+        self.mainLayout.addStretch()
+        self.TitleLabel = QLabel()
+        self.TitleLabel.setPixmap(logo)
+        self.FeedbackLabel = QLabel("")
+        self.FeedbackLabel.setObjectName("FeedbackLabel")
+        self.playButton = QPushButton("Play")
+        self.playButton.setObjectName("MainMenuButton")
+        self.playButton.clicked.connect(lambda : self.play.emit())
+        self.playButton.setMinimumWidth(200)
+        self.ResetMoneyButton = QPushButton("Reset Money")
+        self.ResetMoneyButton.setObjectName("MainMenuButton")
+        self.ResetMoneyButton.clicked.connect(lambda : self.ResetMoney())
+        self.ResetMoneyButton.setMinimumWidth(200)
+        self.settingsButton = QPushButton("Settings")
+        self.settingsButton.setObjectName("MainMenuButton")
+        self.settingsButton.clicked.connect(lambda : self.settings.emit())
+        self.settingsButton.setMinimumWidth(200)
+        self.quitButton =QPushButton("Quit")
+        self.quitButton.setObjectName("MainMenuButton")
+        self.quitButton.clicked.connect(lambda : self.close.emit())
+        self.quitButton.setMinimumWidth(200)
+
+
+        self.mainLayout.addWidget(self.TitleLabel,alignment=Qt.AlignmentFlag.AlignCenter)
+        self.mainLayout.addSpacing(40)
+        self.mainLayout.addWidget(self.FeedbackLabel,alignment=Qt.AlignmentFlag.AlignCenter)
+        self.mainLayout.addSpacing(40)
+        self.mainLayout.addWidget(self.playButton,alignment=Qt.AlignmentFlag.AlignCenter)
+        self.mainLayout.addSpacing(10)
+        self.mainLayout.addWidget(self.ResetMoneyButton,alignment=Qt.AlignmentFlag.AlignCenter)
+        self.mainLayout.addSpacing(10)
+        self.mainLayout.addWidget(self.settingsButton,alignment=Qt.AlignmentFlag.AlignCenter)
+        self.mainLayout.addSpacing(10)
+        self.mainLayout.addWidget(self.quitButton,alignment=Qt.AlignmentFlag.AlignCenter)
+        self.mainLayout.addStretch()
+
+        self.backgroundLabel.lower()
+
+    """
+    Handles the resizing of the main menu
+    returns void
+    """
+    def updateGeometry(self):
+        self.setGeometry(0,0,self.parent().width(),self.parent().height())
+        self.backgroundLabel.setGeometry(self.contentsRect())
+    """
+    Handles the resetting of the player's money
+    returns void
+    """
+    def ResetMoney(self):
+        self.resetMoney.emit()
+        
+        
+    
 class Help(QDialog):
     def __init__(self,icon, parent=None):
         super().__init__(parent)
@@ -16,7 +87,7 @@ class Help(QDialog):
         self.setWindowTitle("Help")
         self.mainLayout = QVBoxLayout()
         self.setLayout(self.mainLayout)
-        self.RulesLabelTitle = QLabel("Game Rules")
+        self.RulesLabelTitle = QLabel("Game Rules :")
         self.RulesLabelTitle.setObjectName("RulesLabelTitle")
         self.RulesLabel = QLabel(self)
         self.RulesLabel.setText("Objective: Get a hand value as close to 21 as possible without going over\nCard Values:\n   Number cards (2-10): Face value\n   Face cards (J, Q, K): 10 points\n   Ace: 1 or 11 (whichever benefits the hand)\nGameplay:\n   Player and dealer each receive 2 cards\n   Player can Hit (draw card) or Stand (end turn)\n   Dealer reveals hidden card and hits until 17+\nWinning: Highest hand ≤21 wins; ties are a push")
@@ -24,7 +95,7 @@ class Help(QDialog):
         self.RulesLabel.setWordWrap(True)
         self.mainLayout.addWidget(self.RulesLabelTitle)
         self.mainLayout.addWidget(self.RulesLabel)
-        self.ControlsLabelTitle = QLabel("Controls:")
+        self.ControlsLabelTitle = QLabel("Controls :")
         self.ControlsLabelTitle.setObjectName("ControlsLabelTitle")
         self.ControlsLabel = QLabel(self)
         self.ControlsLabel.setObjectName("ControlsLabel")
@@ -50,7 +121,7 @@ class Help(QDialog):
 class Settings(QDialog):
     def __init__(self,icon,audioPlayer,SoundPlayer,tracks, parent=None):
         super().__init__(parent)
-        self.setGeometry(parent.width()//2+50, parent.height()//2, 100, 300)
+        self.setGeometry(parent.width()//2+50, parent.height()//2+50, 100, 300)
         self.setWindowTitle("Settings")
         self.setWindowIcon(QIcon(icon))
 
@@ -85,11 +156,17 @@ class Settings(QDialog):
         self.mainLayout.addStretch()
         self.setLayout(self.mainLayout)
 
-
+    """
+    Handles setting the volume levels
+    returns void
+    """
     def SliderValuesChanged(self):
         self.audioPlayer.SetVolume(self.musicSlider.value()/100)
         self.SoundPlayer.SetVolume(self.soundSlider.value()/100)
-
+    """
+    Handles changing the audio track
+    returns void
+    """
     def changeTracks(self):
         self.audioPlayer.playAt(self.tracksSelecter.currentIndex())
 
@@ -107,23 +184,57 @@ class AudioPlayer(QWidget):
         self.selected=0
         self.player.setSource(QUrl.fromLocalFile(self.sounds[0]))
         self.audio_output.setVolume(1)
+    """
+    Returns the name of the current track
+    returns string
+    """
     def CurrentTrack(self):
         return self.trackNames[self.selected]
+    """
+    Returns all track names
+    returns list[string]
+    """
     def AllTracks(self):
         return self.trackNames
+    """
+    sets the volume level
+    args
+        float vol -> volume level
+    returns void
+    """
     def SetVolume(self,vol):
         self.audio_output.setVolume(vol)
+    """
+    selects a track to play
+    args
+        int track -> track index
+    returns void
+    """
     def SelectTrack(self,track):
         if track>=len(self.sounds):
             return
         self.selected = track
         self.player.setSource(QUrl.fromLocalFile(self.sounds[track]))
+    """
+    plays the current track
+    returns void
+    """
     def play(self):
         if self.player.mediaStatus() != QMediaPlayer.MediaStatus.NoMedia:
             self.player.play()
+    """
+    plays a track at a given index
+    args
+        int index -> track index
+    returns void
+    """
     def playAt(self,index):
         self.SelectTrack(index)
         self.play()
+    """
+    stops the audio player
+    returns void
+    """
     def stop(self):
         self.player.stop()
 
